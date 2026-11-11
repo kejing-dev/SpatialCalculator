@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template card line drawing: rug on the floor (single line + result-blue fill, design assets 模板卡线稿) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="48dp" android:viewportWidth="64" android:viewportHeight="48">
+    <path android:fillColor="#99C9A27A" android:pathData="M16,16l34,0l8,22l-46,0z"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="2" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M16,16l34,0l8,22l-46,0z"/>
+    <path android:strokeColor="#FF3A3F45" android:strokeWidth="1.2" android:pathData="M10,12l44,0l8,30l-56,0z"/>
+</vector>

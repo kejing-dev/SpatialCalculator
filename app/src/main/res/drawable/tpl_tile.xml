@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template card line drawing: wall with tiles (single line + result-blue fill, design assets 模板卡线稿) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="48dp" android:viewportWidth="64" android:viewportHeight="48">
+    <path android:fillColor="#664FA3E0" android:pathData="M10,8h44v34h-44z"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="2" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M10,8h44v34h-44zM10,19h44M10,30h44M21,8v11M32,8v11M43,8v11M15,19v11M26,19v11M37,19v11M48,19v11M21,30v12M32,30v12M43,30v12"/>
+    <path android:fillColor="#99F08A24" android:pathData="M48,30h6v12h-6z"/>
+</vector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template card line drawing: free formula (single line + result-blue fill, design assets 模板卡线稿) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="48dp" android:viewportWidth="64" android:viewportHeight="48">
+    <path android:fillColor="#664FA3E0" android:pathData="M38,20h16v16h-16z"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="2" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M38,20h16v16h-16zM8,22h8M12,18v8M20,22h8M8,34h8M20,30l6,6M26,30l-6,6"/>
+    <path android:strokeColor="#FFC98A1B" android:strokeWidth="2.5" android:strokeLineCap="round" android:pathData="M8,10h22"/>
+</vector>

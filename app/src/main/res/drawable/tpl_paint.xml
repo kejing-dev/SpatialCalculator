@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template card line drawing: paint band on a wall (single line + result-blue fill, design assets 模板卡线稿) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="48dp" android:viewportWidth="64" android:viewportHeight="48">
+    <path android:fillColor="#997FC8A9" android:pathData="M10,30h44v12h-44z"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="2" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M10,8h44v34h-44z"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="1.5" android:strokeLineCap="round" android:pathData="M10,30h44"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="2" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M40,12h10v8h-10zM45,20v6"/>
+</vector>

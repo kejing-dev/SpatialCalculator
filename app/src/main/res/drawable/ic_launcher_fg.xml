@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spatial Calculator icon (design appIcon): a curled yellow tape (three ticks) lower left, a pale-blue cube with one
+     bright edge resting on its end upper right: measure -> volume. No text. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- tape: a band curling up from lower left -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFF2C230" android:strokeWidth="9" android:strokeLineCap="round"
+        android:pathData="M30,78 C30,64 40,58 54,60 L66,62" />
+    <path android:fillColor="#FF1B1F24" android:pathData="M37,64.5h2.6v7h-2.6z M45,60.5h2.6v6h-2.6z M53,59.5h2.6v6h-2.6z" />
+    <!-- cube (isometric), pale blue 60 % with a white edge -->
+    <path android:fillColor="#99BFE3FF" android:pathData="M58,40 L72,32 L86,40 L86,58 L72,66 L58,58 Z" />
+    <path android:fillColor="#CCBFE3FF" android:pathData="M58,40 L72,32 L86,40 L72,48 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2" android:strokeLineJoin="round"
+        android:pathData="M58,40 L72,48 L86,40 M72,48 L72,66" />
+    <path android:fillColor="#00000000" android:strokeColor="#E6FFFFFF" android:strokeWidth="1.4" android:strokeLineJoin="round"
+        android:pathData="M58,40 L72,32 L86,40 L86,58 L72,66 L58,58 Z" />
+</vector>

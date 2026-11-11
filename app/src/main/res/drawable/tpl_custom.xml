@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template card line drawing: my template (single line + result-blue fill, design assets 模板卡线稿) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="48dp" android:viewportWidth="64" android:viewportHeight="48">
+    <path android:fillColor="#664FA3E0" android:pathData="M14,14h28v26h-28z"/>
+    <path android:strokeColor="#FF1B1F24" android:strokeWidth="2" android:strokeLineJoin="round" android:strokeLineCap="round" android:pathData="M14,14h28v26h-28zM20,22h16M20,28h16M20,34h10M46,8l6,6l-14,14l-7,1l1,-7z"/>
+</vector>
