@@ -156,3 +156,30 @@ internal fun VolumeSlider(level: Int, onChange: (Int) -> Unit, modifier: Modifie
     }
 }
 
+
+/**
+ * q3-1 (D15, user 2026-11-12「常显静音」): the mute key that stands on every Calc page screen (title row). Icon shows
+ * the current sound state, the text says what a tap does. [compact] = icon only (typing page, narrow column).
+ */
+@Composable
+internal fun MuteKey(muted: Boolean, onClick: () -> Unit, compact: Boolean = false) {
+    val on = muted
+    val fg = if (on) PicoTheme.colorScheme.labelPrimaryLight else PicoTheme.colorScheme.labelPrimary
+    val label = androidx.compose.ui.res.stringResource(if (on) io.embodit.spatialcalc.R.string.unmute else io.embodit.spatialcalc.R.string.mute)
+    Button(
+        onClick = onClick,
+        size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 52.dp),
+        shape = RoundedCornerShape(26.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = if (on) PicoTheme.colorScheme.interaction else PicoTheme.colorScheme.fillSecondary, contentColor = fg),
+    ) {
+        com.pico.spatial.ui.design.Icon(
+            painter = androidx.compose.ui.res.painterResource(if (on) io.embodit.spatialcalc.R.drawable.ic_volume_off else io.embodit.spatialcalc.R.drawable.ic_volume_up),
+            contentDescription = label, tint = fg, modifier = Modifier.size(24.dp),
+        )
+        if (!compact) {
+            androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
+            // design-style: inherited-content-color Button
+            Txt(label, "calc/mute", style = PicoTheme.typography.labelLarge, color = fg)
+        }
+    }
+}

@@ -132,7 +132,7 @@
     <string name="err_box_thin">That side is too thin, pull it out a bit</string>
     <string name="err_unit_mismatch">Units don\'t match: %s</string>
     <string name="err_not_full">Some boxes are still empty. Fill them, then press =</string>
-    <string name="records_count">%1$d cards / 200</string>
+    <string name="records_count">Cards: %1$d / 200</string>
     <string name="records_empty">No cards yet. Measure something and save it</string>
     <string name="records_pinned">Pinned</string>
     <string name="records_unpinned">Not pinned</string>
@@ -185,4 +185,6 @@
     <string name="btn_settings_more">More settings</string>
     <string name="btn_back">Back</string>
     <string name="strip_edit">Tap a number to change it</string>
+    <string name="my_templates">My templates (%1$d)</string>
+    <string name="records_step">Next card</string>
 </resources>

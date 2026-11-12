@@ -187,6 +187,21 @@ object PlaceBody {
         return place(head, window, fake, supportY, size, others)
     }
 
+    /**
+     * K9 (QA3): the 10 L demo block on the job page must not stand inside a pinned body that came back after a restart.
+     * From [base] it slides sideways (right of [head] → [base], up to 2 m; only if that fails, left) in 5 cm steps until its box keeps
+     * [OTHERS_GAP_M] from every one of [others]; the height stays.
+     */
+    fun clearOf(base: Vec3, head: Vec3, size: Vec3, others: List<Aabb>): Vec3 {
+        fun free(p: Vec3) = others.none { bodyBox(BodyPose(p, yawFacing(p, head)), size).intersects(it, OTHERS_GAP_M) }
+        if (free(base)) return base
+        val r = rightOf(flatDir(head, base))
+        // right first (away from the window the demo stands beside), only then left, so it never slides under the window
+        for (k in 1..40) { val right = base + r * (0.05f * k); if (free(right)) return right }
+        for (k in 1..40) { val left = base - r * (0.05f * k); if (free(left)) return left }
+        return base
+    }
+
     const val OTHERS_GAP_M = 0.10f
     /** The fit box swings at least this far (about the head, horizontally) off the head → window direction (q1-4). */
     const val FIT_SIDE_DEG = 35f

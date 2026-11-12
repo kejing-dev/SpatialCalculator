@@ -67,7 +67,7 @@ import io.embodit.spatialcalc.ui.theme.CalcColors
 internal fun CalcPage(state: CalcState, settings: Settings, graph: Graph) {
     when {
         state.phase == Phase.WELCOME || state.phase == Phase.LOADING -> Welcome(graph)
-        state.phase == Phase.PICK || state.template == null -> PickJob(state, graph)
+        state.phase == Phase.PICK || state.template == null -> PickJob(state, settings, graph)
         state.phase == Phase.TYPING -> Typing(state, settings, graph)
         else -> Formula(state, settings, graph)
     }
@@ -105,34 +105,56 @@ private fun WelcomeCard(icon: Int, text: String, tag: String, modifier: Modifier
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PickJob(state: CalcState, graph: Graph) {
+private fun PickJob(state: CalcState, settings: Settings, graph: Graph) {
     val flow = graph.flow
     val fixed = listOf(TemplateId.TANK, TemplateId.TILE, TemplateId.PAINT, TemplateId.FIT, TemplateId.RUG, TemplateId.FREE)
     // v0.1.2 (B31): no Toolbar on this page, no subtitle / footer line; the six jobs are the page
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        PageTitle(stringResource(R.string.pick_title), "pick")
+        PageTitle(stringResource(R.string.pick_title), "pick") { MuteKey(settings.muted, onClick = { flow.toggleMute() }) }
+        // K6 (QA3): saved templates must not sit under the fold as a 6 px sliver. With templates the six job cards get
+        // shorter and the templates follow as a labelled row of buttons, so up to six of them fit without scrolling.
+        val customs = state.customs
+        val cardH = if (customs.isEmpty()) 218.dp else 140.dp
         Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            val items = fixed.map { Triple(templateIcon(it), it, null as Long?) } + state.customs.map { Triple(R.drawable.tpl_custom, TemplateId.CUSTOM, it.id as Long?) }
-            items.chunked(3).forEach { row ->
+            fixed.chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    row.forEach { (icon, t, cid) ->
-                        val name = if (cid != null) state.customs.first { it.id == cid }.name else templateName(t)
-                        JobCard(icon, name, "pick/${cid ?: t.id}", Modifier.weight(1f)) { if (cid != null) flow.pickCustom(cid) else flow.pick(t) }
+                    row.forEach { t -> JobCard(templateIcon(t), templateName(t), "pick/${t.id}", Modifier.weight(1f), cardH) { flow.pick(t) } }
+                }
+            }
+            if (customs.isNotEmpty()) {
+                Txt(stringResource(R.string.my_templates, customs.size), "pick/mine", style = PicoTheme.typography.labelLarge, color = PicoTheme.colorScheme.labelSecondary)
+                customs.chunked(3).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        row.forEach { c -> CustomTile(c.name, "pick/custom-${c.id}", Modifier.weight(1f)) { flow.pickCustom(c.id) } }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
-                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
     }
 }
 
+/** K6: a saved template on the job page (name up to two lines, 64 dp tall). */
 @Composable
-private fun JobCard(icon: Int, name: String, tag: String, modifier: Modifier, onClick: () -> Unit) {
+private fun CustomTile(name: String, tag: String, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.height(64.dp).clip(RoundedCornerShape(18.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painter = painterResource(R.drawable.tpl_custom), contentDescription = null, modifier = Modifier.size(40.dp, 30.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
+        Spacer(Modifier.width(8.dp))
+        Txt(name, tag, style = PicoTheme.typography.labelMedium, maxLines = 2, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun JobCard(icon: Int, name: String, tag: String, modifier: Modifier, height: androidx.compose.ui.unit.Dp = 218.dp, onClick: () -> Unit) {
+    val small = height < 200.dp
     Column(
-        modifier.height(218.dp).clip(RoundedCornerShape(22.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(12.dp),
+        modifier.height(height).clip(RoundedCornerShape(22.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceEvenly,
     ) {
-        Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(128.dp, 96.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
+        Icon(painter = painterResource(icon), contentDescription = null, modifier = if (small) Modifier.size(88.dp, 66.dp) else Modifier.size(128.dp, 96.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
         Txt(name, tag, style = PicoTheme.typography.labelLarge, maxLines = 2, align = TextAlign.Center)
     }
 }
@@ -144,10 +166,13 @@ private fun JobCard(icon: Int, name: String, tag: String, modifier: Modifier, on
  * no other control.
  */
 @Composable
-private fun TitleRow(state: CalcState, graph: Graph, more: Boolean) {
+private fun TitleRow(state: CalcState, settings: Settings, graph: Graph, more: Boolean) {
     Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
         Txt(templateName(state.template, state.customName), "calc/title", style = PicoTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
+        // q3-1 (D15, user 2026-11-12「常显静音」): mute stands on the page in every state, outside the B31 seven
+        MuteKey(settings.muted, onClick = { graph.flow.toggleMute() })
         if (more) {
+            Spacer(Modifier.width(8.dp))
             val open = state.resultMenu
             Button(
                 onClick = { graph.flow.resultMenu(!open) },
@@ -226,21 +251,23 @@ private fun ChipLabel(text: String, tag: String, kind: Int, active: Boolean) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean = false) {
+private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean = false, typing: Boolean = false) {
     val flow = graph.flow
     val content: @Composable () -> Unit = {
         if (state.tokensMode) {
             state.tokens.forEachIndexed { i, t ->
                 val kind = when { t is Token.Op -> 3; (t as Token.Num).source == Source.TYPED -> 2; else -> 1 }
-                ChipButton(tokenLabel(t, unit), "calc/chip$i", kind, state.chipMenu == i) { flow.chipTap(i) }
+                ChipButton(tokenLabel(t, unit), "calc/chip$i", kind, state.chipMenu == i) { if (typing) flow.typingChipTap(i) else flow.chipTap(i) }
             }
             if (state.tokens.isEmpty()) ChipButton("…", "calc/chip-empty", 0, true) { flow.openTyping() }
         } else {
             state.slots.forEachIndexed { i, v ->
                 if (i > 0) Txt(io.embodit.spatialcalc.domain.calc.Templates.joiner(state.template!!, state.round, i - 1), "calc/join$i", style = TextStyle(fontSize = 20.sp), color = CalcColors.InkSecondary, modifier = Modifier.padding(top = 10.dp))
                 val kind = when { v.q == null -> 0; v.source == Source.TAPE || v.source == Source.FITBOX -> 1; else -> 2 }
-                ChipButton(slotLabel(v, unit), "calc/chip$i", kind, i == state.active && v.q == null || state.chipMenu == i) {
-                    if (v.q == null) { flow.selectSlot(i); if (v.def.kind == SlotKind.NUMBER) flow.openTyping(i) else flow.chipTap(i) } else flow.chipTap(i)
+                ChipButton(slotLabel(v, unit), "calc/chip$i", kind, (typing && i == state.active) || (!typing && i == state.active && v.q == null) || state.chipMenu == i) {
+                    // q3-3: on the keyboard a chip tap saves the field into its slot first, then moves the keyboard
+                    if (typing) flow.typingChipTap(i)
+                    else if (v.q == null) { flow.selectSlot(i); if (v.def.kind == SlotKind.NUMBER) flow.openTyping(i) else flow.chipTap(i) } else flow.chipTap(i)
                 }
             }
         }
@@ -299,7 +326,7 @@ private fun Formula(state: CalcState, settings: Settings, graph: Graph) {
         if (state.hint == Hint.TIP) { kotlinx.coroutines.delay(TIP_MS); flow.dismissTip() }
     }
     Column(Modifier.fillMaxSize().padding(bottom = if (toolbar) 64.dp else 0.dp), verticalArrangement = Arrangement.SpaceBetween) {
-        TitleRow(state, graph, more = plain || (state.resultMenu && state.phase == Phase.FORMULA && state.confirm == null))
+        TitleRow(state, settings, graph, more = plain || (state.resultMenu && state.phase == Phase.FORMULA && state.confirm == null))
         when {
             state.resultMenu && state.phase == Phase.FORMULA && state.confirm == null -> {
                 Hero(state, settings, small = true)
@@ -346,7 +373,7 @@ private fun MoreSheet(state: CalcState, settings: Settings, graph: Graph) {
                 row.forEach { item ->
                     val (label, danger) = moreLabel(item, state, settings)
                     SecondaryButton(label, "more/${item.name.lowercase()}", danger = danger, modifier = Modifier.weight(1f), onClick = {
-                        val keepOpen = item == MoreItem.UNIT || item == MoreItem.SOUND
+                        val keepOpen = item == MoreItem.UNIT
                         if (!keepOpen) flow.resultMenu(false)
                         when (item) {
                             MoreItem.TYPE -> flow.openTyping()
@@ -358,7 +385,6 @@ private fun MoreSheet(state: CalcState, settings: Settings, graph: Graph) {
                             MoreItem.SHAPE -> flow.setRound(!state.round)
                             MoreItem.BRING -> graph.bringBody()
                             MoreItem.PUT_AWAY -> flow.collapseBody()
-                            MoreItem.SOUND -> flow.updateSettings { it.copy(muted = !it.muted) }
                             MoreItem.HELP -> flow.showTip()
                             MoreItem.CLEAR -> flow.clearAsk()
                         }
@@ -381,7 +407,6 @@ private fun moreLabel(item: MoreItem, state: CalcState, settings: Settings): Pai
     MoreItem.SHAPE -> stringResource(if (state.round) R.string.more_shape_box else R.string.more_shape_round) to false
     MoreItem.BRING -> stringResource(R.string.btn_bring) to false
     MoreItem.PUT_AWAY -> stringResource(R.string.btn_hide_body) to false
-    MoreItem.SOUND -> stringResource(if (settings.muted) R.string.more_sound_off else R.string.more_sound_on) to false
     MoreItem.HELP -> stringResource(R.string.more_help) to false
     MoreItem.CLEAR -> stringResource(R.string.btn_clear) to true
 }
@@ -453,7 +478,11 @@ private fun NameRow(state: CalcState, graph: Graph) {
                 textStyle = TextStyle(fontSize = 18.sp, color = CalcColors.Ink),
                 modifier = Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xCCFFFFFF)).padding(horizontal = 14.dp, vertical = 14.dp),
             )
-            PrimaryButton(stringResource(R.string.btn_ok), "saved/name-ok", onClick = { graph.flow.saveAsTemplate(name) }, modifier = Modifier.width(110.dp), height = 52.dp)
+        }
+        // K7 (QA3): naming can be backed out of
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SecondaryButton(stringResource(R.string.btn_cancel), "saved/name-cancel", onClick = { graph.flow.cancelNaming() }, modifier = Modifier.weight(1f))
+            PrimaryButton(stringResource(R.string.btn_ok), "saved/name-ok", onClick = { graph.flow.saveAsTemplate(name) }, modifier = Modifier.weight(1f), height = 52.dp)
         }
     }
 }
@@ -502,7 +531,10 @@ private fun Typing(state: CalcState, settings: Settings, graph: Graph) {
     val unit = state.typingUnit
     Row(Modifier.fillMaxSize().padding(bottom = 64.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-            Txt(templateName(state.template, state.customName), "typing/title", style = PicoTheme.typography.titleMedium)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Txt(templateName(state.template, state.customName), "typing/title", style = PicoTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
+                MuteKey(settings.muted, onClick = { flow.toggleMute() }, compact = true) // q3-1
+            }
             val target = if (state.tokensMode) stringResource(R.string.chip_free_num) else state.slots.getOrNull(state.active)?.let { slotName(it.def.key) } ?: ""
             Txt(stringResource(R.string.step_typing, target), "typing/guide", style = PicoTheme.typography.bodyMedium, color = PicoTheme.colorScheme.labelSecondary)
             Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xCCFFFFFF)).padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
@@ -510,7 +542,7 @@ private fun Typing(state: CalcState, settings: Settings, graph: Graph) {
                 val suffix = if (state.tokensMode || slotUnit == SlotUnit.LENGTH) unit.label else slotUnit?.label ?: ""
                 Txt((state.typingBuffer.ifEmpty { "0" }) + " " + suffix, "typing/buffer", style = TextStyle(fontSize = 24.sp), color = CalcColors.Ink)
             }
-            ChipRow(state, unit, graph, wrap = true)
+            ChipRow(state, unit, graph, wrap = true, typing = true)
             ResultRowCompact(state, settings)
             Segments(listOf(LenUnit.CM to "cm", LenUnit.M to "m", LenUnit.IN to "in", LenUnit.FT to "ft"), unit, "typing/unit", { flow.setTypingUnit(it) }, Modifier.fillMaxWidth(), small = true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

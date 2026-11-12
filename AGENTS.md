@@ -98,3 +98,21 @@ S23 clear ask · S24 anchorFail · S25 seven errors · S26 fit box.
 - New debug cmds: `more on/off` (= resultmenu), `settingsmore on/off`, `tip`, `chipdone`.
 - Tools: `tools/walk.sh OUTDIR zh|en` (screens + `pico-cli interact query` control counts), `tools/ws.py` (blank %),
   `tools/ba.py` (factory build/simplify-before-after.html).
+
+## v0.1.3 (QA round 3 rework)
+
+- q3-1 mute always on the Calc page: `MuteKey` (Widgets.kt) in the title row of the job page, the formula page (icon + 静音 / 取消静音)
+  and the keyboard (icon only); `CalcFlow.toggleMute()` = the same setting as Settings → Sound. Sound left ⋯ More (no duplicate).
+  `Chrome.MUTE` is outside the B31 seven; `Chrome.shownCount` (≤ 8 with a body) is what is on screen.
+- q3-2 after [钉在这里] the primary is「接着量一个」: `Chrome.pinnedDone` (saved card pinned, not dirty) → NEXT before the PLACE
+  rule; `CalcFlow.equals()` ignores = in that state (log `EQUALS ignored`). Editing a number makes it a new result again.
+- q3-3 keyboard slot switch: chips on the keyboard call `CalcFlow.typingChipTap(i)`: the field is committed into the slot it was typed
+  for (unchanged → nothing written), then the keyboard opens on slot i with that slot's value. Debug: `chip "i typing"`.
+- q3-4 Settings first screen: [重开面板] and [退出应用] side by side again (D44); gone from More settings.
+- K6 job page with saved templates: job cards 140 dp, templates as a labelled 64 dp tile row (up to 6 without scrolling).
+- K7 template naming row has [取消] (`cancelNaming`, debug `namecancel`). K8 records: one card at a time + a「1 / 7 下一张 ›」row
+  (`recordStep`, debug `recordnext`), always 7 controls. K9 the 10 L demo block slides right (then left) off pinned bodies, also
+  when they are restored after it appeared (`PlaceBody.clearOf`, log `DEMO 10 L moved clear of pinned`). K10 [✓ 收起] never lands
+  in chip edit mode. K3 English count「Cards: n / 200」.
+- Tests: `Round3Test` (9). Real taps: `pico-cli interact act --text` fails on digit-only names, click keys by node id
+  (`interact perform --node … --action-id 16`).

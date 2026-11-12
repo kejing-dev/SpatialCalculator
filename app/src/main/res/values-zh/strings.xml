@@ -185,4 +185,6 @@
     <string name="btn_settings_more">更多设置</string>
     <string name="btn_back">返回</string>
     <string name="strip_edit">点一个数改它</string>
+    <string name="my_templates">我的模板（%1$d）</string>
+    <string name="records_step">下一张</string>
 </resources>

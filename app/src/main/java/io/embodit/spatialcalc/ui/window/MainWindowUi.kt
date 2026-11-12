@@ -174,17 +174,15 @@ private fun RecordsPage(state: CalcState, settings: Settings, graph: Graph) {
         if (state.hint == io.embodit.spatialcalc.domain.session.Hint.BROUGHT) {
             Txt(stringResource(R.string.hint_brought), "records/brought", style = PicoTheme.typography.bodyMedium, color = CalcColors.TertiaryText)
         }
-        val openId = state.cards.firstOrNull { it.id == state.expandedCard }?.id ?: state.cards.first().id
-        // few cards: the open card takes the free height (big picture + result) so the page has no empty band (D44)
-        val few = state.cards.size <= 2
-        Column(
-            Modifier.fillMaxWidth().weight(1f).then(if (few) Modifier else Modifier.verticalScroll(rememberScrollState())),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            state.cards.forEach { c ->
-                val open = c.id == openId
-                CardRow(c, open, few, settings, graph, if (open && few) Modifier.weight(1f) else Modifier)
-            }
+        // K8 (QA3): one card at a time, so the page keeps the same number of controls however many cards there are
+        // (B31): the open card takes the free height (no empty band, D44); with 2+ cards one row steps to the next.
+        val openIdx = state.cards.indexOfFirst { it.id == state.expandedCard }.coerceAtLeast(0)
+        val c = state.cards[openIdx]
+        Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            key(c.id) { CardRow(c, true, true, settings, graph, Modifier.weight(1f)) }
+        }
+        if (state.cards.size > 1) {
+            StepRow("${openIdx + 1} / ${state.cards.size}", stringResource(R.string.records_step), "records/step") { flow.recordStep(1) }
         }
         PrimaryButton(stringResource(R.string.records_next), "records/next", onClick = { flow.next(); flow.page(Page.CALC) }, modifier = Modifier.fillMaxWidth(), height = 60.dp)
     }
@@ -255,7 +253,7 @@ private fun templateDefaultName(c: Card): String = "${templateName(c.template, c
 // ------------------------------------------------------------------ Settings (S15 / S16)
 
 /**
- * v0.1.2 (B31): Settings first screen = language · units · sound (slider + mute) · [More settings] · [Quit app].
+ * v0.1.2 (B31): Settings first screen = language · units · sound (slider + mute) · [More settings] · [Reopen panel] [Quit app].
  * Language / units are one row each that steps to the next choice (the value is on the row). Opacity, snap, table
  * height, reopen panel and the about line live on the [More settings] sub-page.
  */
@@ -297,7 +295,11 @@ private fun SettingsPage(state: CalcState, settings: Settings, graph: Graph) {
         }
         SecondaryButton(stringResource(R.string.btn_settings_more) + "  ›", "settings/more", onClick = { flow.settingsMore(true) }, modifier = Modifier.fillMaxWidth(), tall = true)
         if (state.confirm != Confirm.EXIT) {
-            SecondaryButton(stringResource(R.string.btn_exit_app), "settings/exit", danger = true, onClick = { flow.exitAsk() }, modifier = Modifier.fillMaxWidth(), tall = true)
+            // q3-4 (D44): [重开面板] (this app's「叫回面前」) and [退出应用] side by side on the first screen
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SecondaryButton(stringResource(R.string.btn_reopen_window), "settings/reopen", onClick = { graph.window.recall() }, modifier = Modifier.weight(1f), tall = true)
+                SecondaryButton(stringResource(R.string.btn_exit_app), "settings/exit", danger = true, onClick = { flow.exitAsk() }, modifier = Modifier.weight(1f), tall = true)
+            }
         } else {
             // D26: the confirmation opens in place, inside this window
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -324,7 +326,7 @@ private fun StepRow(label: String, value: String, tag: String, onClick: () -> Un
     }
 }
 
-/** Settings → [More settings]: result body opacity, snap to pins, virtual table height, reopen panel, about. */
+/** Settings → [More settings]: result body opacity, snap to pins, virtual table height, about ([重开面板] is on the first screen, q3-4). */
 @Composable
 private fun SettingsMorePage(settings: Settings, graph: Graph) {
     val flow = graph.flow
@@ -344,7 +346,6 @@ private fun SettingsMorePage(settings: Settings, graph: Graph) {
             Txt("${Fmt.plain(settings.tableHeight.toDouble())} m", "settings/table-value", style = PicoTheme.typography.titleMedium, modifier = Modifier.weight(1f), align = androidx.compose.ui.text.style.TextAlign.Center)
             SecondaryButton("+", "settings/table-plus", onClick = { flow.updateSettings { it.copy(tableHeight = ((it.tableHeight + 0.05f) * 100).let { v -> Math.round(v) / 100f }.coerceIn(0.4f, 1.1f)) } }, minWidth = 64.dp)
         }
-        SecondaryButton(stringResource(R.string.btn_reopen_window), "settings/reopen", onClick = { graph.window.recall() }, modifier = Modifier.fillMaxWidth(), tall = true)
         Txt(stringResource(R.string.about_text, BuildConfig.VERSION_NAME) + " · " + stringResource(R.string.disclaimer), "settings/about", style = PicoTheme.typography.bodySmall, color = PicoTheme.colorScheme.labelSecondary, maxLines = 3)
     }
 }

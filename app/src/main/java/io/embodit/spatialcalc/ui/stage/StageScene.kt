@@ -30,6 +30,7 @@ import io.embodit.spatialcalc.domain.math.Vec3
 import io.embodit.spatialcalc.domain.place.Aabb
 import io.embodit.spatialcalc.domain.place.BodyPose
 import io.embodit.spatialcalc.domain.place.HeadSampler
+import io.embodit.spatialcalc.domain.place.PlaceBody
 import io.embodit.spatialcalc.domain.place.ResultPlate
 import io.embodit.spatialcalc.domain.place.SightCone
 import io.embodit.spatialcalc.domain.place.bodyBox
@@ -153,6 +154,7 @@ class StageScene(private val graph: Graph) : RoomEnv {
     private var resizeStart = 0L
     private var demo: Entity? = null
     private var demoPose: Vec3? = null
+    private var demoKey: String? = null
     private var fitHolder: Entity? = null
     private var fitKey = ""
     private val pinnedBodies = HashMap<Long, Entity>()
@@ -487,15 +489,27 @@ class StageScene(private val graph: Graph) : RoomEnv {
 
     private fun renderDemo(r: SceneResources, root: Entity, s: CalcState) {
         val want = (s.phase == Phase.WELCOME || s.phase == Phase.PICK) && s.body == null
-        if (!want) { if (demo != null) { runCatching { demo?.destroy(true) }; demo = null; demoPose = null }; return }
-        if (demo != null) return
+        if (!want) { if (demo != null) { runCatching { demo?.destroy(true) }; demo = null; demoPose = null; demoKey = null }; return }
+        // K9 (QA3): pinned bodies restored after a restart arrive after the demo block: keep it clear of them
+        val others = flow.obstacles()
+        val key = others.toString()
+        if (demo != null) {
+            if (key == demoKey) return
+            demoKey = key
+            val p0 = demoPose ?: return
+            val h0 = lastPose ?: return
+            val p = PlaceBody.clearOf(p0, h0.position, DEMO_SIZE, others)
+            if (p != p0) { demo?.place(position = p, rotation = yawQuat(yawFacing(p, h0.position))); demoPose = p; AppLog.i("DEMO 10 L moved clear of pinned at=${fmt(p)}") }
+            return
+        }
         val h = lastPose ?: return
         val f = Vec3(h.forward.x, 0f, h.forward.z).normalized()
         val right = Vec3(-f.z, 0f, f.x)
         // to the right of the window (1.75 m ahead), on the virtual table / detected table: out of the sight cone
         // beside the window (it opens 1.75 m ahead), a little below the eye: in view, 23° off the sight line
         val y = max(floorY() + flow.settings.value.tableHeight, h.position.y - 0.65f)
-        val p = Vec3(h.position.x, y, h.position.z) + f * 1.6f + right * 0.7f
+        val p = PlaceBody.clearOf(Vec3(h.position.x, y, h.position.z) + f * 1.6f + right * 0.7f, h.position, DEMO_SIZE, others)
+        demoKey = key
         val e = Entity().apply { setName("demo") }
         root.addChild(e)
         e.place(position = p, rotation = yawQuat(yawFacing(p, h.position)))
@@ -817,6 +831,8 @@ class StageScene(private val graph: Graph) : RoomEnv {
 
     companion object {
         val STOW = Vec3(0f, -40f, 0f)
+        /** The 10 L demo block (0.25 × 0.2 × 0.2 m) with its tape, as a box for clearance (K9). */
+        val DEMO_SIZE = Vec3(0.32f, 0.25f, 0.26f)
         fun fmt(v: Vec3?): String = if (v == null) "null" else String.format(Locale.US, "(%.4f, %.4f, %.4f)", v.x, v.y, v.z)
     }
 }

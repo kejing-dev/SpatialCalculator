@@ -319,8 +319,29 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
         if (s.phase != Phase.TYPING) return
         // q1-2: nothing typed → the chip keeps its exact value (no round trip through the display string)
         if (s.tokensMode || s.typingBuffer != s.typingInit) commitBuffer() else fx.log("CHIP typing closed unchanged")
-        set { it.copy(phase = Phase.FORMULA, typingBuffer = "", typingInit = "") }
+        // K10 (QA3): [✓ 收起] goes back to the plain formula, never into chip edit mode
+        set { it.copy(phase = Phase.FORMULA, typingBuffer = "", typingInit = "", chipMenu = null) }
     }
+
+    /**
+     * q3-3: a tap on a chip while the keyboard is open. The number in the field goes into the slot it was typed for
+     * first (unchanged → nothing is written), then the keyboard moves to slot [i] with that slot's own value. Before
+     * v0.1.3 the field kept its digits and the next slot got them glued on (20 → 2020 → 202020 cm).
+     * Free formula: the number is appended as a chip and the keyboard closes on that chip's edit menu.
+     */
+    fun typingChipTap(i: Int) {
+        if (s.phase != Phase.TYPING) { if (s.tokensMode || s.slots.getOrNull(i)?.q != null) chipTap(i) else { selectSlot(i); openTyping(i) }; return }
+        if (s.tokensMode) { closeTyping(); if (i in s.tokens.indices) chipTap(i); return }
+        if (i !in s.slots.indices) return
+        if (i == s.active) return
+        val from = s.active
+        if (s.typingBuffer != s.typingInit) commitBuffer()
+        fx.log("CHIP typing switch slot=$from -> $i")
+        openTyping(i)
+    }
+
+    /** q3-1: the always-on mute key on the Calc page (same setting as Settings → Sound). */
+    fun toggleMute() = updateSettings { it.copy(muted = !it.muted) }
 
     fun setTypingUnit(u: LenUnit) = set { it.copy(typingUnit = u) }
 
@@ -408,6 +429,8 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
     fun equals() {
         val r = s.result
         if (s.phase == Phase.TYPING) closeTyping()
+        // q3-2: the result is pinned in the room already; a second = would stand a copy on top of it
+        if (Chrome.pinnedDone(s)) { fx.log("EQUALS ignored: card ${s.savedCardId} is pinned"); return }
         if (!s.result.ok) { hint(if (r.error == CalcError.EMPTY) Hint.NOT_FULL else hintOf(r.error)); return }
         val spec = s.result.body
         if (spec == null) { fx.log("EQUALS no body (m⁰)"); return }
@@ -624,6 +647,9 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
 
     fun startNaming() = set { it.copy(naming = true) }
 
+    /** K7 (QA3): the naming row's [取消]: nothing is saved, back to where it was opened from. */
+    fun cancelNaming() = set { it.copy(naming = false) }
+
     /** [存成模板]: from the active card (S12) or a record (S13). */
     fun saveAsTemplate(name: String, fromCard: Long? = null) {
         if (s.customs.size >= MAX_CUSTOMS) { hint(Hint.CARD_CAP); return }
@@ -673,6 +699,16 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
     // ------------------------------------------------------------------ records (S13)
 
     fun expand(id: Long?) = set { it.copy(expandedCard = if (id == null || it.expandedCard == id) null else id) }
+
+    /** K8 (QA3): records show one card at a time; the「2 / 7 ›」row steps to the next (wraps). */
+    fun recordStep(delta: Int = 1) {
+        if (s.cards.isEmpty()) return
+        val cur = s.cards.indexOfFirst { it.id == s.expandedCard }.coerceAtLeast(0)
+        val n = s.cards.size
+        val next = s.cards[((cur + delta) % n + n) % n].id
+        set { it.copy(expandedCard = next) }
+        fx.log("RECORDS show ${s.cards.indexOfFirst { it.id == next } + 1}/$n")
+    }
 
     fun deleteAsk(id: Long) = set { it.copy(confirm = Confirm.DELETE_CARD, confirmCardId = id) }
 

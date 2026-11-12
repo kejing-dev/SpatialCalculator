@@ -72,6 +72,7 @@ class DebugCommandReceiver : BroadcastReceiver() {
                     "remeasure" -> flow.chipRemeasure(i)
                     "delete" -> flow.chipDelete(i)
                     "menu" -> flow.chipTap(i)
+                    "typing" -> flow.typingChipTap(i) // q3-3: a chip tap while the keyboard is open (same call as the button)
                 }
             }
             "drag" -> {
@@ -102,6 +103,9 @@ class DebugCommandReceiver : BroadcastReceiver() {
             "settingsmore" -> flow.settingsMore(on)
             "tip" -> flow.showTip()
             "chipdone" -> flow.closeChipMenu()
+            "namecancel" -> flow.cancelNaming()
+            "recordnext" -> flow.recordStep(1)
+            "mutekey" -> flow.toggleMute()
             "turn" -> flow.turnBoxes()
             "replay" -> flow.s.cards.getOrNull(a.toIntOrNull() ?: 0)?.let { flow.replay(it.id) }
             "expand" -> flow.s.cards.getOrNull(a.toIntOrNull() ?: 0)?.let { flow.expand(it.id) }

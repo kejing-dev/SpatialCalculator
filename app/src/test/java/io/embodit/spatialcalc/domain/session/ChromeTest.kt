@@ -37,8 +37,9 @@ class ChromeTest {
         val more = Chrome.more(s)
         if (ToolKeyId.FITBOX in tb) assertFalse("$where: Fit box twice", MoreItem.FITBOX in more)
         if (ToolKeyId.MEASURE in tb) assertFalse("$where: Measure twice", MoreItem.MEASURE in more)
-        // nothing lost: typing, sound, help and clear are always one ⋯ away
-        assertTrue(more.containsAll(listOf(MoreItem.TYPE, MoreItem.SOUND, MoreItem.HELP, MoreItem.CLEAR)))
+        // nothing lost: typing, help and clear are always one ⋯ away; sound is the always-on mute key (q3-1), not in ⋯
+        assertTrue(more.containsAll(listOf(MoreItem.TYPE, MoreItem.HELP, MoreItem.CLEAR)))
+        assertTrue("$where: ${Chrome.shownCount(s)} shown incl. mute > 8", Chrome.shownCount(s) <= 8)
     }
 
     @Test fun everyJobStaysAtSevenOrFewerThroughItsLoop() {
