@@ -6,7 +6,7 @@
 #   tools/sc.sh install          install the debug APK and start the app
 set -u
 DEV="${DEV:-emulator-5564}"
-PKG=io.embodit.spatialcalc
+PKG=com.kejing.spatialcalc
 ADB="${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 case "${1:-}" in

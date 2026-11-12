@@ -43,7 +43,7 @@ Release 里的 APK 是 `assembleRelease` 出的未签名包（上架用），自
 export JAVA_HOME=~/.pico/primer-cli/jdk/jdk-21.0.13+9/Contents/Home   # 任意 JDK 17+
 ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-pico-cli app launch io.embodit.spatialcalc
+pico-cli app launch com.kejing.spatialcalc
 ```
 
 已知问题：没有手柄射线时（如模拟器）拟合盒开在视野右下角，要转头看；关窗后的「打开面板」按钮风格和应用其他按钮不统一；英文记录页单数写成「1 cards」。v0.1.1 还没在头显上验过。
@@ -87,7 +87,7 @@ The APK on the Release is the unsigned `assembleRelease` build (for store upload
 export JAVA_HOME=~/.pico/primer-cli/jdk/jdk-21.0.13+9/Contents/Home   # any JDK 17+
 ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-pico-cli app launch io.embodit.spatialcalc
+pico-cli app launch com.kejing.spatialcalc
 ```
 
 Known issues: without a controller ray (e.g. on the emulator) the fit box opens at the lower right and you have to turn your head; the "Open panel" button after closing the window does not match the other buttons; the English records page says "1 cards". v0.1.1 has not been tested on a headset yet.

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
-        <!-- Debug builds only: QA / harness commands. adb shell am broadcast -a io.embodit.spatialcalc.DEBUG -p io.embodit.spatialcalc -es cmd dump -->
+        <!-- Debug builds only: QA / harness commands. adb shell am broadcast -a com.kejing.spatialcalc.DEBUG -p com.kejing.spatialcalc -es cmd dump -->
         <receiver
             android:name=".platform.DebugCommandReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="io.embodit.spatialcalc.DEBUG" />
+                <action android:name="com.kejing.spatialcalc.DEBUG" />
             </intent-filter>
         </receiver>
     </application>

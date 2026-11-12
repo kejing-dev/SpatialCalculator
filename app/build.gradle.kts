@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "io.embodit.spatialcalc"
+    namespace = "com.kejing.spatialcalc"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.embodit.spatialcalc"
+        applicationId = "com.kejing.spatialcalc"
         minSdk = 35
         targetSdk = 35
         versionCode = 2

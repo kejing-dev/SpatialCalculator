@@ -1,4 +1,4 @@
-# Spatial Calculator (空间计算器) · io.embodit.spatialcalc
+# Spatial Calculator (空间计算器) · com.kejing.spatialcalc
 
 MR calculator for PICO OS 6 (SDK 6.1.9): measure a tank / wall / shelf by tapping twice, the reading goes into the
 formula, press = and the answer stands next to the real thing at 1:1 (water block, tiled wall, paint band, ghost boxes
@@ -33,7 +33,7 @@ face normal). No collider on any real plane (D24). Names come only from `Names`;
 
 ## Debug broadcast
 
-`adb shell am broadcast -a io.embodit.spatialcalc.DEBUG -p io.embodit.spatialcalc --es cmd <cmd> --es a "<arg>"`
+`adb shell am broadcast -a com.kejing.spatialcalc.DEBUG -p com.kejing.spatialcalc --es cmd <cmd> --es a "<arg>"`
 (or `tools/sc.sh cmd <cmd> [arg]`, DEV=emulator-xxxx). Logs: tag `SpatialCalc`, prefixes STATE MEASURE CHIP CALC BODY
 PLACE ANCHOR WINDOW TAP DRAG HINT CMD DUMP; also mirrored into files/input-log.txt (`run-as … cat files/input-log.txt`).
 
