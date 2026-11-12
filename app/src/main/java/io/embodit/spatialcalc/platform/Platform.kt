@@ -145,13 +145,15 @@ class Graph(private val context: Context) {
             snapPins = prefs.getBoolean("snapPins", true),
             tableHeight = prefs.getFloat("tableHeight", 0.5f).coerceIn(0.4f, 1.1f),
             welcomeDone = prefs.getBoolean("welcomeDone", false),
+            tipsSeen = prefs.getString("tipsSeen", "")!!.split(",").filter { it.isNotBlank() }.toSet(),
         )
     }.getOrElse { Settings() }
 
     private fun writeSettings(s: Settings) {
         prefs.edit().putString("language", s.language.name).putBoolean("imperial", s.imperial).putInt("opacity", s.opacity)
             .putInt("volume", s.volume).putBoolean("muted", s.muted).putBoolean("fineAim", s.fineAim).putBoolean("snapPins", s.snapPins)
-            .putFloat("tableHeight", s.tableHeight).putBoolean("welcomeDone", s.welcomeDone).apply()
+            .putFloat("tableHeight", s.tableHeight).putBoolean("welcomeDone", s.welcomeDone)
+            .putString("tipsSeen", s.tipsSeen.joinToString(",")).apply()
     }
 
     /** Debug `wipe`: no cards, no settings (first-run state on the next launch). */

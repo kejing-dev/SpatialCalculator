@@ -98,7 +98,7 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
         if (s.phase == Phase.WELCOME) set { it.copy(phase = Phase.PICK) }
     }
 
-    fun page(p: Page) = set { it.copy(page = p, confirm = if (it.confirm == Confirm.EXIT && p != Page.SETTINGS) null else it.confirm) }
+    fun page(p: Page) = set { it.copy(page = p, settingsMore = false, confirm = if (it.confirm == Confirm.EXIT && p != Page.SETTINGS) null else it.confirm) }
 
     // ------------------------------------------------------------------ hints
 
@@ -132,7 +132,30 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
             )
         }
         fx.log("TEMPLATE $t round=$round slots=${slots.size}")
+        tipOnce(t.id, "")
     }
+
+    /** v0.1.2 (B31): a how-to line appears by itself only the first time; after that only from More → How to. */
+    private fun tipOnce(key: String, arg: String) {
+        if (key in _settings.value.tipsSeen) return
+        updateSettings { it.copy(tipsSeen = it.tipsSeen + key) }
+        hint(Hint.TIP, arg)
+    }
+
+    /** More → [How to]: the job's how-to (with a body standing: drag it / stick to turn). */
+    fun showTip() {
+        set { it.copy(resultMenu = false) }
+        hint(Hint.TIP, if (s.body != null) "drag" else "")
+    }
+
+    /** The how-to line goes away by itself (no standing instructions, B31). */
+    fun dismissTip() { if (s.hint == Hint.TIP) hint(Hint.NONE) }
+
+    /** Chip edit mode off (the strip goes back to one quiet line). */
+    fun closeChipMenu() = set { it.copy(chipMenu = null) }
+
+    /** Settings → [More settings] / [‹ Back]. */
+    fun settingsMore(on: Boolean) = set { it.copy(settingsMore = on, page = Page.SETTINGS) }
 
     fun pickCustom(id: Long) {
         val c = s.customs.firstOrNull { it.id == id } ?: return
@@ -403,6 +426,7 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
         set { it.copy(phase = Phase.FORMULA, body = BodyState(pose, size, env.now(), attached = attached), resultMenu = false, chipMenu = null, hint = if (bigBox(it.result.body)) Hint.OVERSIZE else Hint.NONE) }
         fx.sound(if (s.template == TemplateId.TANK) Sfx.POUR else Sfx.THUD)
         fx.log("BODY grow pos=${pose.position} yaw=${"%.3f".format(pose.yaw)} size=$size attached=$attached")
+        if (s.hint == Hint.NONE) tipOnce("drag", "drag")
     }
 
     /** S21 is about volumes / slabs bigger than the room; a 5 m tiled wall is not「穿墙」. */
@@ -644,7 +668,7 @@ class CalcFlow(private val env: RoomEnv, private val fx: FlowEffects) {
 
     fun confirmNo() = set { it.copy(confirm = null, confirmCardId = null) }
 
-    fun exitAsk() = set { it.copy(confirm = Confirm.EXIT, page = Page.SETTINGS) }
+    fun exitAsk() = set { it.copy(confirm = Confirm.EXIT, page = Page.SETTINGS, settingsMore = false) }
 
     // ------------------------------------------------------------------ records (S13)
 

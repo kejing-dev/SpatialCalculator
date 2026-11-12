@@ -135,6 +135,7 @@ fun hintText(s: CalcState): String? = when (s.hint) {
     Hint.NOT_FULL -> stringResource(R.string.err_not_full)
     Hint.TEMPLATE_SAVED -> stringResource(R.string.hint_template_saved, s.hintArg)
     Hint.BROUGHT -> stringResource(R.string.hint_brought)
+    Hint.TIP -> if (s.hintArg == "drag") stringResource(R.string.drag_hint) else templateTip(s.template)
 }
 
 fun isErrorHint(h: Hint) = h in setOf(Hint.PASTE_BAD, Hint.CARD_CAP, Hint.CHIP_CAP, Hint.PINS_CLOSE, Hint.BOX_THIN, Hint.UNIT_MISMATCH, Hint.BAD_DIM, Hint.PIN_FAILED, Hint.NOT_FULL)

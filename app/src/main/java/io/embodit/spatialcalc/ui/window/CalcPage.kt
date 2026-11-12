@@ -56,6 +56,7 @@ import io.embodit.spatialcalc.domain.calc.Token
 import io.embodit.spatialcalc.domain.session.CalcState
 import io.embodit.spatialcalc.domain.session.Confirm
 import io.embodit.spatialcalc.domain.session.Hint
+import io.embodit.spatialcalc.domain.session.MoreItem
 import io.embodit.spatialcalc.domain.session.Phase
 import io.embodit.spatialcalc.domain.session.Settings
 import io.embodit.spatialcalc.platform.Graph
@@ -84,10 +85,8 @@ private fun Welcome(graph: Graph) {
             WelcomeCard(R.drawable.tpl_free, stringResource(R.string.welcome_2), "welcome/2", Modifier.weight(1f))
             WelcomeCard(R.drawable.tpl_fit, stringResource(R.string.welcome_3), "welcome/3", Modifier.weight(1f))
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(stringResource(R.string.welcome_skip), "welcome/skip", onClick = { graph.flow.welcomeDone() }, modifier = Modifier.weight(1f), tall = true)
-            PrimaryButton(stringResource(R.string.welcome_start), "welcome/start", onClick = { graph.flow.welcomeDone() }, modifier = Modifier.weight(2f))
-        }
+        // v0.1.2 (B31): [跳过] did the same as [开始] — one button
+        PrimaryButton(stringResource(R.string.welcome_start), "welcome/start", onClick = { graph.flow.welcomeDone() }, modifier = Modifier.fillMaxWidth(), height = 60.dp)
     }
 }
 
@@ -109,12 +108,10 @@ private fun WelcomeCard(icon: Int, text: String, tag: String, modifier: Modifier
 private fun PickJob(state: CalcState, graph: Graph) {
     val flow = graph.flow
     val fixed = listOf(TemplateId.TANK, TemplateId.TILE, TemplateId.PAINT, TemplateId.FIT, TemplateId.RUG, TemplateId.FREE)
-    Column(Modifier.fillMaxSize().padding(bottom = 64.dp), verticalArrangement = Arrangement.SpaceBetween) {
-        Column {
-            PageTitle(stringResource(R.string.pick_title), "pick")
-            Txt(stringResource(R.string.pick_sub), "pick/sub", style = PicoTheme.typography.bodyLarge, color = PicoTheme.colorScheme.labelSecondary)
-        }
-        Column(Modifier.fillMaxWidth().weight(1f).padding(vertical = 10.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    // v0.1.2 (B31): no Toolbar on this page, no subtitle / footer line; the six jobs are the page
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        PageTitle(stringResource(R.string.pick_title), "pick")
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val items = fixed.map { Triple(templateIcon(it), it, null as Long?) } + state.customs.map { Triple(R.drawable.tpl_custom, TemplateId.CUSTOM, it.id as Long?) }
             items.chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -126,68 +123,76 @@ private fun PickJob(state: CalcState, graph: Graph) {
                 }
             }
         }
-        Txt(stringResource(R.string.pick_footer), "pick/footer", style = PicoTheme.typography.bodyMedium, color = PicoTheme.colorScheme.labelSecondary)
     }
 }
 
 @Composable
 private fun JobCard(icon: Int, name: String, tag: String, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.height(128.dp).clip(RoundedCornerShape(20.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(10.dp),
+        modifier.height(218.dp).clip(RoundedCornerShape(22.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceEvenly,
     ) {
-        Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(80.dp, 60.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
+        Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(128.dp, 96.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
         Txt(name, tag, style = PicoTheme.typography.labelLarge, maxLines = 2, align = TextAlign.Center)
     }
 }
 
 // ------------------------------------------------------------------ S03 … S09, S26
 
+/**
+ * v0.1.2 (B31): title + one ⋯ More button. The tank shape, mute and the unit moved into More; the title row carries
+ * no other control.
+ */
 @Composable
-private fun TitleRow(state: CalcState, settings: Settings, graph: Graph) {
+private fun TitleRow(state: CalcState, graph: Graph, more: Boolean) {
     Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
         Txt(templateName(state.template, state.customName), "calc/title", style = PicoTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
-        if (state.template == TemplateId.TANK && state.phase != Phase.TYPING) {
-            Segments(listOf(false to stringResource(R.string.shape_box), true to stringResource(R.string.shape_round)), state.round, "calc/shape", { graph.flow.setRound(it) }, Modifier.width(200.dp), small = true)
-            Spacer(Modifier.width(8.dp))
-        }
-        // D15: mute is always one tap away on the Calc page
-        Button(
-            onClick = { graph.flow.updateSettings { it.copy(muted = !it.muted) } },
-            size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 52.dp), shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = PicoTheme.colorScheme.fillSecondary, contentColor = PicoTheme.colorScheme.labelPrimary),
-        ) {
-            Icon(painter = painterResource(if (settings.muted) R.drawable.ic_volume_off else R.drawable.ic_volume_up), contentDescription = stringResource(if (settings.muted) R.string.unmute else R.string.mute), tint = PicoTheme.colorScheme.labelPrimary)
+        if (more) {
+            val open = state.resultMenu
+            Button(
+                onClick = { graph.flow.resultMenu(!open) },
+                size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 52.dp), shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (open) PicoTheme.colorScheme.interaction else PicoTheme.colorScheme.fillSecondary,
+                    contentColor = if (open) PicoTheme.colorScheme.labelPrimaryLight else PicoTheme.colorScheme.labelPrimary,
+                ),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_more), contentDescription = stringResource(if (open) R.string.btn_close else R.string.btn_more),
+                    tint = if (open) PicoTheme.colorScheme.labelPrimaryLight else PicoTheme.colorScheme.labelPrimary,
+                )
+            }
         }
     }
 }
 
-/** 引导行: the next step in a few words + progress dots over the measure slots. */
+/** The one visual lead of the page (B31): the result, large, centred. Errors take its place in the error colour. */
 @Composable
-private fun GuideRow(state: CalcState) {
-    val measureSlots = state.slots.indices.filter { state.slots[it].def.kind != SlotKind.NUMBER }
-    val text = when {
-        state.phase == Phase.AIM -> stringResource(R.string.aim_first)
-        state.phase == Phase.PULL -> stringResource(R.string.pull_other)
-        state.phase == Phase.PLACE -> stringResource(R.string.hint_place)
-        state.phase == Phase.FITBOX -> stringResource(R.string.hint_fitbox)
-        state.body != null -> stringResource(R.string.drag_hint)
-        state.tokensMode -> if (state.result.ok) stringResource(R.string.step_equals) else stringResource(R.string.step_free)
-        state.measureSlotEmpty -> {
-            val i = state.active.takeIf { state.slots.getOrNull(it)?.q == null } ?: measureSlots.first { state.slots[it].q == null }
-            val n = measureSlots.indexOf(i) + 1
-            stringResource(R.string.step_measure, n.coerceAtLeast(1), measureSlots.size, slotName(state.slots[i].def.key))
-        }
-        else -> stringResource(R.string.step_equals)
+private fun Hero(state: CalcState, settings: Settings, small: Boolean = false) {
+    val text = resultText(state.result, state.template, state.resultUnit, settings.imperial)
+    val err = state.result.error?.takeIf { it != io.embodit.spatialcalc.domain.calc.CalcError.EMPTY }
+    val shown = when {
+        err != null -> if (err == io.embodit.spatialcalc.domain.calc.CalcError.UNIT_MISMATCH) stringResource(R.string.err_unit_mismatch, state.result.errorDetail) else stringResource(R.string.err_dim)
+        text == null -> stringResource(R.string.result_placeholder)
+        else -> "= $text"
     }
-    Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
-        Txt(text, "calc/guide", style = PicoTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 2)
-        if (!state.tokensMode) measureSlots.forEach { i ->
-            val filled = state.slots[i].q != null
-            Box(Modifier.padding(start = 6.dp).size(10.dp).clip(CircleShape).background(if (filled) CalcColors.Secondary else Color.Transparent).border(1.5.dp, CalcColors.InkSecondary, CircleShape))
-        }
+    val size = when {
+        err != null -> 22
+        small -> if (shown.length > 18) 22 else 30
+        shown.length <= 12 -> 60
+        shown.length <= 18 -> 40
+        shown.length <= 26 -> 30
+        else -> 24
     }
+    Txt(
+        shown, if (err != null) "calc/result-error" else "calc/result", style = TextStyle(fontSize = size.sp, lineHeight = (size * 1.2).sp),
+        color = when { err != null -> CalcColors.ErrorText; text == null -> CalcColors.InkSecondary; else -> CalcColors.TertiaryText },
+        modifier = Modifier.fillMaxWidth(), maxLines = 2, align = TextAlign.Center,
+    )
 }
+
+/** v0.1.2: the calculator「display」frame (a faint tint + hairline) shared by the Calc page and the records page. */
+internal fun displayFrame(): Modifier = Modifier.clip(RoundedCornerShape(24.dp)).background(Color(0x40FFFFFF)).border(1.5.dp, Color(0x40000000), RoundedCornerShape(24.dp))
 
 @Composable
 private fun ChipButton(text: String, tag: String, kind: Int, active: Boolean, onClick: () -> Unit) {
@@ -206,6 +211,20 @@ private fun ChipButton(text: String, tag: String, kind: Int, active: Boolean, on
     }
 }
 
+/** A read-only chip inside the quiet formula strip (lighter: smaller, no button of its own). */
+@Composable
+private fun ChipLabel(text: String, tag: String, kind: Int, active: Boolean) {
+    val bg = when (kind) { 1 -> CalcColors.SecondaryContainer; 2 -> CalcColors.NumberChip; 3 -> Color.Transparent; else -> Color(0x33FFFFFF) }
+    val fg = when (kind) { 1 -> CalcColors.OnSecondaryContainer; else -> CalcColors.Ink }
+    Box(
+        Modifier.height(36.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+            .then(if (active) Modifier.border(2.dp, CalcColors.Primary, RoundedCornerShape(10.dp)) else Modifier)
+            .padding(horizontal = if (kind == 3) 2.dp else 10.dp),
+        contentAlignment = Alignment.Center,
+    ) { Txt(text, tag, style = TextStyle(fontSize = 16.sp), color = fg) }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean = false) {
     val flow = graph.flow
@@ -227,31 +246,44 @@ private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean
         }
     }
     if (wrap) {
-        @OptIn(ExperimentalLayoutApi::class)
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { content() }
     } else {
         Row(Modifier.fillMaxWidth().height(56.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) { content() }
     }
 }
 
+/**
+ * v0.1.2 (B31): the formula as ONE quiet control. Tap → chip edit mode (the chips become their own buttons with
+ * 改数 · 重量 · 删), so the numbers stay one tap from being fixed without five buttons standing on the page.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ResultRow(state: CalcState, settings: Settings, graph: Graph) {
-    val text = resultText(state.result, state.template, state.resultUnit, settings.imperial)
-    val err = state.result.error?.takeIf { it != io.embodit.spatialcalc.domain.calc.CalcError.EMPTY }
-    Row(
-        Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(16.dp)).clickable { if (state.result.ok) graph.flow.resultMenu(!state.resultMenu) }.padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+private fun FormulaStrip(state: CalcState, unit: LenUnit, graph: Graph, enabled: Boolean) {
+    val flow = graph.flow
+    val onTap = {
         when {
-            err != null -> Txt(
-                if (err == io.embodit.spatialcalc.domain.calc.CalcError.UNIT_MISMATCH) stringResource(R.string.err_unit_mismatch, state.result.errorDetail) else stringResource(R.string.err_dim),
-                "calc/result-error", style = PicoTheme.typography.titleMedium, color = CalcColors.ErrorText, modifier = Modifier.weight(1f),
-            )
-            text == null -> Txt(stringResource(R.string.result_placeholder), "calc/result", style = TextStyle(fontSize = 30.sp), color = CalcColors.InkSecondary, modifier = Modifier.weight(1f))
-            else -> Txt("= $text", "calc/result", style = TextStyle(fontSize = if (text.length > 22) 22.sp else 30.sp), color = CalcColors.TertiaryText, modifier = Modifier.weight(1f), maxLines = 2)
+            state.tokensMode && state.tokens.none { it is Token.Num } -> flow.openTyping()
+            state.tokensMode -> flow.chipTap(state.tokens.indexOfFirst { it is Token.Num })
+            else -> flow.chipTap(state.slots.indexOfFirst { it.q != null && it.def.kind != SlotKind.NUMBER }.takeIf { it >= 0 } ?: state.active)
         }
-        if (state.result.q != null && state.result.count == null) {
-            SecondaryButton(stringResource(R.string.unit_tap).let { (state.resultUnit ?: io.embodit.spatialcalc.domain.calc.ResultUnit.default(state.result.q!!.dim, settings.imperial)).label.ifEmpty { "·" } }, "calc/unit", onClick = { graph.flow.cycleUnit() }, minWidth = 64.dp)
+    }
+    FlowRow(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0x66FFFFFF))
+            .then(if (enabled) Modifier.clickable(onClick = onTap) else Modifier).padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (state.tokensMode) {
+            state.tokens.forEachIndexed { i, t ->
+                val kind = when { t is Token.Op -> 3; (t as Token.Num).source == Source.TYPED -> 2; else -> 1 }
+                ChipLabel(tokenLabel(t, unit), "calc/strip$i", kind, false)
+            }
+            if (state.tokens.isEmpty()) ChipLabel("…", "calc/strip-empty", 0, false)
+        } else {
+            state.slots.forEachIndexed { i, v ->
+                if (i > 0) ChipLabel(io.embodit.spatialcalc.domain.calc.Templates.joiner(state.template!!, state.round, i - 1), "calc/strip-join$i", 3, false)
+                val kind = when { v.q == null -> 0; v.source == Source.TAPE || v.source == Source.FITBOX -> 1; else -> 2 }
+                ChipLabel(slotLabel(v, unit), "calc/strip$i", kind, i == state.active && v.q == null && state.phase != Phase.FORMULA)
+            }
         }
     }
 }
@@ -260,30 +292,123 @@ private fun ResultRow(state: CalcState, settings: Settings, graph: Graph) {
 private fun Formula(state: CalcState, settings: Settings, graph: Graph) {
     val flow = graph.flow
     val unit = if (settings.imperial) LenUnit.IN else LenUnit.CM
-    Column(Modifier.fillMaxSize().padding(bottom = 64.dp), verticalArrangement = Arrangement.SpaceBetween) {
-        TitleRow(state, settings, graph)
-        GuideRow(state)
-        // q1-5 (D16): the chips wrap onto a second line instead of running off the right edge
-        ChipRow(state, unit, graph, wrap = true)
-        // chip menu (S03 / S11): 改数 · 重量 · 删
-        state.chipMenu?.let { i ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val isOp = state.tokensMode && state.tokens.getOrNull(i) is Token.Op
-                if (!isOp && !(state.tokensMode)) SecondaryButton(stringResource(R.string.btn_edit), "calc/chip-edit", onClick = { flow.openTyping(i) }, modifier = Modifier.weight(1f))
-                if (!isOp && state.slots.getOrNull(i)?.def?.unit?.let { it == SlotUnit.LENGTH } != false) SecondaryButton(stringResource(R.string.btn_remeasure), "calc/chip-remeasure", onClick = { flow.chipRemeasure(i) }, modifier = Modifier.weight(1f))
-                SecondaryButton(stringResource(R.string.btn_delete), "calc/chip-delete", onClick = { flow.chipDelete(i) }, modifier = Modifier.weight(1f))
-            }
-        }
-        ResultRow(state, settings, graph)
-        if (state.resultMenu && state.result.ok) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SecondaryButton(stringResource(R.string.btn_bring), "calc/bring", onClick = { graph.bringBody() }, enabled = state.body != null, modifier = Modifier.weight(1f))
-                SecondaryButton(stringResource(R.string.btn_hide_body), "calc/collapse", onClick = { flow.collapseBody() }, enabled = state.body != null, modifier = Modifier.weight(1f))
-            }
-        }
-        ActionRow(state, graph)
-        HintLine(state)
+    val plain = io.embodit.spatialcalc.domain.session.Chrome.plainFormula(state)
+    val toolbar = io.embodit.spatialcalc.domain.session.Chrome.toolbar(state).isNotEmpty()
+    // the how-to line goes by itself (no standing instructions, B31)
+    androidx.compose.runtime.LaunchedEffect(state.hint, state.hintArg, state.template) {
+        if (state.hint == Hint.TIP) { kotlinx.coroutines.delay(TIP_MS); flow.dismissTip() }
     }
+    Column(Modifier.fillMaxSize().padding(bottom = if (toolbar) 64.dp else 0.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        TitleRow(state, graph, more = plain || (state.resultMenu && state.phase == Phase.FORMULA && state.confirm == null))
+        when {
+            state.resultMenu && state.phase == Phase.FORMULA && state.confirm == null -> {
+                Hero(state, settings, small = true)
+                MoreSheet(state, settings, graph)
+            }
+            state.chipMenu != null && state.phase == Phase.FORMULA && state.confirm == null -> {
+                Hero(state, settings, small = true)
+                Txt(stringResource(R.string.strip_edit), "calc/strip-edit", style = PicoTheme.typography.bodyMedium, color = PicoTheme.colorScheme.labelSecondary)
+                ChipRow(state, unit, graph, wrap = true)
+                // chip menu (S03 / S11): 改数 · 重量 · 删
+                val i = state.chipMenu
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val isOp = state.tokensMode && state.tokens.getOrNull(i) is Token.Op
+                    if (!isOp && !(state.tokensMode)) SecondaryButton(stringResource(R.string.btn_edit), "calc/chip-edit", onClick = { flow.openTyping(i) }, modifier = Modifier.weight(1f))
+                    if (!isOp && state.slots.getOrNull(i)?.def?.unit?.let { it == SlotUnit.LENGTH } != false) SecondaryButton(stringResource(R.string.btn_remeasure), "calc/chip-remeasure", onClick = { flow.chipRemeasure(i) }, modifier = Modifier.weight(1f))
+                    SecondaryButton(stringResource(R.string.btn_delete), "calc/chip-delete", onClick = { flow.chipDelete(i) }, modifier = Modifier.weight(1f))
+                }
+                PrimaryButton(stringResource(R.string.btn_done), "calc/chip-done", onClick = { flow.closeChipMenu() }, modifier = Modifier.fillMaxWidth(), height = 56.dp)
+            }
+            else -> {
+                // the display: one framed block that holds the result (the lead), the formula strip and the status line
+                Column(
+                    Modifier.fillMaxWidth().weight(1f).padding(vertical = 12.dp).then(displayFrame()).padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Hero(state, settings)
+                    FormulaStrip(state, unit, graph, enabled = plain)
+                    HintLine(state)
+                }
+                ActionRow(state, graph)
+            }
+        }
+    }
+}
+
+/** More (⋯): the secondary items of this moment, two per row (Chrome.more decides which). */
+@Composable
+private fun MoreSheet(state: CalcState, settings: Settings, graph: Graph) {
+    val flow = graph.flow
+    val items = io.embodit.spatialcalc.domain.session.Chrome.more(state)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item ->
+                    val (label, danger) = moreLabel(item, state, settings)
+                    SecondaryButton(label, "more/${item.name.lowercase()}", danger = danger, modifier = Modifier.weight(1f), onClick = {
+                        val keepOpen = item == MoreItem.UNIT || item == MoreItem.SOUND
+                        if (!keepOpen) flow.resultMenu(false)
+                        when (item) {
+                            MoreItem.TYPE -> flow.openTyping()
+                            MoreItem.MEASURE -> flow.measureButton()
+                            MoreItem.FITBOX -> graph.fitBox()
+                            MoreItem.SAVE -> flow.saveCard()
+                            MoreItem.SAVE_TEMPLATE -> flow.startNaming()
+                            MoreItem.UNIT -> flow.cycleUnit()
+                            MoreItem.SHAPE -> flow.setRound(!state.round)
+                            MoreItem.BRING -> graph.bringBody()
+                            MoreItem.PUT_AWAY -> flow.collapseBody()
+                            MoreItem.SOUND -> flow.updateSettings { it.copy(muted = !it.muted) }
+                            MoreItem.HELP -> flow.showTip()
+                            MoreItem.CLEAR -> flow.clearAsk()
+                        }
+                    })
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun moreLabel(item: MoreItem, state: CalcState, settings: Settings): Pair<String, Boolean> = when (item) {
+    MoreItem.TYPE -> stringResource(R.string.btn_type) to false
+    MoreItem.MEASURE -> stringResource(R.string.btn_measure) to false
+    MoreItem.FITBOX -> stringResource(R.string.btn_fitbox) to false
+    MoreItem.SAVE -> stringResource(R.string.btn_save) to false
+    MoreItem.SAVE_TEMPLATE -> stringResource(R.string.btn_save_template) to false
+    MoreItem.UNIT -> stringResource(R.string.more_unit, (state.resultUnit ?: io.embodit.spatialcalc.domain.calc.ResultUnit.default(state.result.q!!.dim, settings.imperial)).label.ifEmpty { "·" }) to false
+    MoreItem.SHAPE -> stringResource(if (state.round) R.string.more_shape_box else R.string.more_shape_round) to false
+    MoreItem.BRING -> stringResource(R.string.btn_bring) to false
+    MoreItem.PUT_AWAY -> stringResource(R.string.btn_hide_body) to false
+    MoreItem.SOUND -> stringResource(if (settings.muted) R.string.more_sound_off else R.string.more_sound_on) to false
+    MoreItem.HELP -> stringResource(R.string.more_help) to false
+    MoreItem.CLEAR -> stringResource(R.string.btn_clear) to true
+}
+
+/** The one primary button of the plain formula view (Chrome.primary). */
+@Composable
+private fun PrimaryAction(state: CalcState, graph: Graph) {
+    val flow = graph.flow
+    val p = io.embodit.spatialcalc.domain.session.Chrome.primary(state)
+    val label = when (p) {
+        io.embodit.spatialcalc.domain.session.PrimaryAction.MEASURE -> {
+            val slot = state.slots.getOrNull(state.active)?.takeIf { it.q == null && it.def.kind != SlotKind.NUMBER }
+                ?: state.slots.firstOrNull { it.q == null && it.def.kind != SlotKind.NUMBER }
+            if (slot != null) stringResource(R.string.btn_measure_slot, slotName(slot.def.key)) else stringResource(R.string.btn_measure)
+        }
+        io.embodit.spatialcalc.domain.session.PrimaryAction.PLACE -> stringResource(R.string.btn_place)
+        io.embodit.spatialcalc.domain.session.PrimaryAction.SAVE -> stringResource(R.string.btn_save)
+        io.embodit.spatialcalc.domain.session.PrimaryAction.NEXT -> stringResource(R.string.records_next)
+    }
+    PrimaryButton(label, "calc/primary-${p.name.lowercase()}", enabled = io.embodit.spatialcalc.domain.session.Chrome.primaryEnabled(state), modifier = Modifier.fillMaxWidth(), height = 60.dp, onClick = {
+        when (p) {
+            io.embodit.spatialcalc.domain.session.PrimaryAction.MEASURE -> flow.measureButton()
+            io.embodit.spatialcalc.domain.session.PrimaryAction.PLACE -> flow.equals()
+            io.embodit.spatialcalc.domain.session.PrimaryAction.SAVE -> flow.saveCard()
+            io.embodit.spatialcalc.domain.session.PrimaryAction.NEXT -> flow.next()
+        }
+    })
 }
 
 @Composable
@@ -298,15 +423,10 @@ private fun ActionRow(state: CalcState, graph: Graph) {
             }
         }
         state.naming -> NameRow(state, graph)
-        state.savedPreview -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PrimaryButton(stringResource(R.string.btn_pin_here), "saved/pin", onClick = { flow.pinHere() }, modifier = Modifier.weight(1f), height = 52.dp)
-                SecondaryButton(stringResource(R.string.btn_just_save), "saved/just", onClick = { flow.closeSaved() }, modifier = Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SecondaryButton(stringResource(R.string.btn_save_template), "saved/template", onClick = { flow.startNaming() }, modifier = Modifier.weight(1f))
-                SecondaryButton(stringResource(R.string.btn_next), "saved/next", onClick = { flow.next() }, modifier = Modifier.weight(1f))
-            }
+        state.savedPreview -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrimaryButton(stringResource(R.string.btn_pin_here), "saved/pin", onClick = { flow.pinHere() }, modifier = Modifier.weight(1.4f), height = 56.dp)
+            SecondaryButton(stringResource(R.string.btn_just_save), "saved/just", onClick = { flow.closeSaved() }, modifier = Modifier.weight(1f), tall = true)
+            SecondaryButton(stringResource(R.string.btn_next), "saved/next", onClick = { flow.next() }, modifier = Modifier.weight(1f), tall = true)
         }
         state.phase == Phase.AIM || state.phase == Phase.PULL -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             SecondaryButton(stringResource(R.string.btn_type), "calc/type", onClick = { flow.cancelMeasure(); flow.openTyping() }, modifier = Modifier.weight(1f), tall = true)
@@ -317,11 +437,7 @@ private fun ActionRow(state: CalcState, graph: Graph) {
             PrimaryButton(stringResource(R.string.btn_use_sides), "fitbox/use", onClick = { flow.fitBoxUse() }, modifier = Modifier.weight(2f))
             SecondaryButton(stringResource(R.string.btn_cancel), "fitbox/cancel", onClick = { flow.fitBoxCancel() }, modifier = Modifier.weight(1f), tall = true)
         }
-        else -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryButton(stringResource(R.string.btn_equals), "calc/equals", onClick = { flow.equals() }, enabled = state.result.ok, modifier = Modifier.weight(1.3f))
-            SecondaryButton(stringResource(R.string.btn_type), "calc/type", onClick = { flow.openTyping() }, modifier = Modifier.weight(1f), tall = true)
-            SecondaryButton(stringResource(R.string.btn_save), "calc/save", onClick = { flow.saveCard() }, enabled = state.result.ok, modifier = Modifier.weight(1f), tall = true)
-        }
+        else -> PrimaryAction(state, graph)
     }
 }
 
@@ -342,8 +458,19 @@ private fun NameRow(state: CalcState, graph: Graph) {
     }
 }
 
+/**
+ * One status line, only while there is something to say (B31: no standing instructions): the step while aiming /
+ * placing / fitting, a one-shot hint (errors,「量到的数进来了」, the first-time how-to), or a live warning.
+ */
 @Composable
 private fun HintLine(state: CalcState) {
+    val guide = when (state.phase) {
+        Phase.AIM -> stringResource(R.string.aim_first)
+        Phase.PULL -> stringResource(R.string.pull_other)
+        Phase.PLACE -> stringResource(R.string.hint_place)
+        Phase.FITBOX -> stringResource(R.string.hint_fitbox)
+        else -> null
+    }
     val extra = when {
         state.lost -> stringResource(R.string.hint_lost)
         state.noPlanes && (state.phase == Phase.AIM || state.phase == Phase.PULL || state.phase == Phase.PLACE) -> stringResource(R.string.no_planes)
@@ -353,15 +480,18 @@ private fun HintLine(state: CalcState) {
         state.headSampling -> stringResource(R.string.hint_look_ahead)
         else -> null
     }
-    val main = hintText(state)
-    val measureOr = if (state.phase == Phase.AIM && state.slots.getOrNull(state.active)?.def?.kind == SlotKind.MEASURE_OR_NUMBER) " · " + stringResource(R.string.or_type) else ""
-    val text = listOfNotNull(main, extra).joinToString(" · ").ifEmpty { templateTip(state.template) } + measureOr
+    val main = hintText(state)?.takeIf { it != guide }
+    val measureOr = if (state.phase == Phase.AIM && state.slots.getOrNull(state.active)?.def?.kind == SlotKind.MEASURE_OR_NUMBER) stringResource(R.string.or_type) else null
+    val text = listOfNotNull(guide, main, extra, measureOr).joinToString(" · ")
+    if (text.isEmpty()) return
     Txt(
-        text, "calc/hint", style = PicoTheme.typography.bodyMedium, maxLines = 2,
+        text, "calc/hint", style = PicoTheme.typography.bodyLarge, maxLines = 3, align = TextAlign.Center,
         color = if (isErrorHint(state.hint)) CalcColors.ErrorText else PicoTheme.colorScheme.labelSecondary,
-        modifier = Modifier.fillMaxWidth().height(44.dp),
+        modifier = Modifier.fillMaxWidth(),
     )
 }
+
+private const val TIP_MS = 10_000L
 
 // ------------------------------------------------------------------ S07 typing (two columns)
 

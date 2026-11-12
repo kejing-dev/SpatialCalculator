@@ -170,4 +170,19 @@
     <string name="records_formula">算式</string>
     <string name="pin_ring">📍</string>
     <string name="unit_tap">点单位可换</string>
+    <!-- v0.1.2 界面简洁 (B31) -->
+    <string name="btn_more">更多</string>
+    <string name="more_title">更多</string>
+    <string name="btn_close">收起</string>
+    <string name="btn_measure_slot">量%s</string>
+    <string name="btn_place">= 摆出来</string>
+    <string name="more_unit">单位：%s</string>
+    <string name="more_sound_on">声音：开</string>
+    <string name="more_sound_off">声音：关</string>
+    <string name="more_help">怎么量</string>
+    <string name="more_shape_round">换成圆缸</string>
+    <string name="more_shape_box">换成方缸</string>
+    <string name="btn_settings_more">更多设置</string>
+    <string name="btn_back">返回</string>
+    <string name="strip_edit">点一个数改它</string>
 </resources>

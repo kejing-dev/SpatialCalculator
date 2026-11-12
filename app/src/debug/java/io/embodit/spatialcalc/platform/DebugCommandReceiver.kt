@@ -98,7 +98,10 @@ class DebugCommandReceiver : BroadcastReceiver() {
             "confirm" -> flow.confirmYes()
             "cancel" -> { flow.confirmNo(); flow.cancelMeasure(); flow.cancelPlace(); flow.fitBoxCancel() }
             "collapse" -> flow.collapseBody()
-            "resultmenu" -> flow.resultMenu(on)
+            "resultmenu", "more" -> flow.resultMenu(on)
+            "settingsmore" -> flow.settingsMore(on)
+            "tip" -> flow.showTip()
+            "chipdone" -> flow.closeChipMenu()
             "turn" -> flow.turnBoxes()
             "replay" -> flow.s.cards.getOrNull(a.toIntOrNull() ?: 0)?.let { flow.replay(it.id) }
             "expand" -> flow.s.cards.getOrNull(a.toIntOrNull() ?: 0)?.let { flow.expand(it.id) }

@@ -32,6 +32,8 @@ data class TapeRec(val id: Int, val a: PinPoint, val b: PinPoint, val lengthM: D
 enum class Hint {
     NONE, NO_PLANES, PLANES_BACK, LOST, NO_PERMISSION, PASTE_SPLIT, PASTE_BAD, CARD_CAP, CHIP_CAP, PINS_CLOSE, BOX_THIN,
     UNIT_MISMATCH, BAD_DIM, SAVED, PIN_FAILED, CANT_PLACE, READING_IN, OVERSIZE, LANDED, CONE_PLATE, NOT_FULL, TEMPLATE_SAVED, BROUGHT,
+    /** v0.1.2 (B31): the job's how-to line, shown once per job (and for the first body: drag / stick), then only from More → How to. */
+    TIP,
 }
 
 data class BodyState(
@@ -84,6 +86,8 @@ data class Settings(
     /** Virtual table height above the floor (S17), metres 0.4–1.1. */
     val tableHeight: Float = 0.5f,
     val welcomeDone: Boolean = false,
+    /** v0.1.2 (B31): how-to lines already shown once (template ids, "drag"); later only on request (More → How to). */
+    val tipsSeen: Set<String> = emptySet(),
 )
 
 enum class Language { SYSTEM, ZH, EN }
@@ -132,6 +136,8 @@ data class CalcState(
     val fitPerm: Int? = null,
     /** fit: the shelf cell measured with the fit box ([用这三边]); the ghost boxes stand in it (q1-8). */
     val fitCell: FitBoxState? = null,
+    /** v0.1.2 (B31): Settings → [More settings] sub-page (opacity, snap, table height, reopen panel, about). */
+    val settingsMore: Boolean = false,
 ) {
     /** S08: the formula has grown its body (or is placing it). */
     val showingResult: Boolean get() = body != null

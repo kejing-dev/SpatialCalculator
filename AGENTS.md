@@ -83,3 +83,18 @@ S23 clear ask · S24 anchorFail · S25 seven errors · S26 fit box.
 - Auto placement slides past pinned bodies (10 cm gap, `CalcFlow.obstacles`).
 - Chips wrap (FlowRow); welcome cards 320 dp; records list + 「接着量一个」tiles follow each other, 1–2 cards keep one open.
 - Default volume 85 % (chip 1.0, tape 0.9): `tools/loudness.py` voiced RMS −16.9 / −18.2 / −18.8 dBFS (−30/−40/−50 dB thresholds).
+
+## v0.1.2 (界面精简, profile B31 — user「界面还需要简洁一点，现在有点太乱」)
+
+- `domain/session/Chrome.kt` decides the Calc page chrome per state: one primary (`Chrome.primary`: Measure <slot> → = Show it here →
+  Save → Measure another), Toolbar keys only while measuring and never a copy of the primary (`Chrome.toolbar`), everything
+  else in ⋯ More (`Chrome.more`, reuses `CalcState.resultMenu`; a tap on the 1:1 body opens it too). `ChromeTest` counts every
+  state (≤ 7 incl. the 3 tabs and the body).
+- Formula = one quiet strip; tap → chip edit mode (`chipMenu`) with per-chip buttons + 改数 / 重量 / 删 + ✓ (`closeChipMenu`).
+- How-to lines (`Hint.TIP`) show once per job / once for the first body (`Settings.tipsSeen`, prefs `tipsSeen`), auto-hide after
+  10 s; then More → How to (`showTip`).
+- Settings first screen: language / units step rows, mute + volume, [More settings] (`CalcState.settingsMore`), Quit.
+- Records: open card = [Show it again] [⋯ More] (pin / bring / template / delete / close), one primary「Measure another」.
+- New debug cmds: `more on/off` (= resultmenu), `settingsmore on/off`, `tip`, `chipdone`.
+- Tools: `tools/walk.sh OUTDIR zh|en` (screens + `pico-cli interact query` control counts), `tools/ws.py` (blank %),
+  `tools/ba.py` (factory build/simplify-before-after.html).

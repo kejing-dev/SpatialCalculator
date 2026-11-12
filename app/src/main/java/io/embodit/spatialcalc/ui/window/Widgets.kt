@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -141,11 +143,12 @@ internal fun SwitchRow(label: String, tag: String, checked: Boolean, onChange: (
 /** A draggable slider that snaps to three stops (小 / 中 / 大) and shows the percentage (B20). */
 @Composable
 internal fun VolumeSlider(level: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val label = androidx.compose.ui.res.stringResource(io.embodit.spatialcalc.R.string.set_volume)
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Slider(
             value = level.toFloat(),
             onValueChange = { v -> val snapped = kotlin.math.round(v).toInt().coerceIn(0, 2); if (snapped != level) onChange(snapped) },
-            modifier = Modifier.weight(1f).height(48.dp),
+            modifier = Modifier.weight(1f).height(48.dp).semantics { contentDescription = label },
             valueRange = 0f..2f,
         )
         Box(Modifier.width(12.dp))

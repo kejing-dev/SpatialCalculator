@@ -170,4 +170,19 @@
     <string name="records_formula">Formula</string>
     <string name="pin_ring">📍</string>
     <string name="unit_tap">Tap the unit to switch</string>
+    <!-- v0.1.2 界面简洁 (B31) -->
+    <string name="btn_more">More</string>
+    <string name="more_title">More</string>
+    <string name="btn_close">Close</string>
+    <string name="btn_measure_slot">Measure the %s</string>
+    <string name="btn_place">= Show it here</string>
+    <string name="more_unit">Unit: %s</string>
+    <string name="more_sound_on">Sound: on</string>
+    <string name="more_sound_off">Sound: off</string>
+    <string name="more_help">How to</string>
+    <string name="more_shape_round">Round tank</string>
+    <string name="more_shape_box">Box tank</string>
+    <string name="btn_settings_more">More settings</string>
+    <string name="btn_back">Back</string>
+    <string name="strip_edit">Tap a number to change it</string>
 </resources>
