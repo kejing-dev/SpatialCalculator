@@ -154,6 +154,9 @@ class StageScene(private val graph: Graph) : RoomEnv {
     private var resizeStart = 0L
     private var demo: Entity? = null
     private var demoPose: Vec3? = null
+    /** K11: where the demo first went and the view direction then (the clear-of search stays in that view). */
+    private var demoBase: Vec3? = null
+    private var demoView: Vec3? = null
     private var demoKey: String? = null
     private var fitHolder: Entity? = null
     private var fitKey = ""
@@ -498,7 +501,7 @@ class StageScene(private val graph: Graph) : RoomEnv {
             demoKey = key
             val p0 = demoPose ?: return
             val h0 = lastPose ?: return
-            val p = PlaceBody.clearOf(p0, h0.position, DEMO_SIZE, others)
+            val p = PlaceBody.clearOf(demoBase ?: p0, h0.position, DEMO_SIZE, others, demoView)
             if (p != p0) { demo?.place(position = p, rotation = yawQuat(yawFacing(p, h0.position))); demoPose = p; AppLog.i("DEMO 10 L moved clear of pinned at=${fmt(p)}") }
             return
         }
@@ -508,8 +511,9 @@ class StageScene(private val graph: Graph) : RoomEnv {
         // to the right of the window (1.75 m ahead), on the virtual table / detected table: out of the sight cone
         // beside the window (it opens 1.75 m ahead), a little below the eye: in view, 23° off the sight line
         val y = max(floorY() + flow.settings.value.tableHeight, h.position.y - 0.65f)
-        val p = PlaceBody.clearOf(Vec3(h.position.x, y, h.position.z) + f * 1.6f + right * 0.7f, h.position, DEMO_SIZE, others)
-        demoKey = key
+        val base = Vec3(h.position.x, y, h.position.z) + f * 1.6f + right * 0.7f
+        val p = PlaceBody.clearOf(base, h.position, DEMO_SIZE, others, f)
+        demoKey = key; demoBase = base; demoView = f
         val e = Entity().apply { setName("demo") }
         root.addChild(e)
         e.place(position = p, rotation = yawQuat(yawFacing(p, h.position)))

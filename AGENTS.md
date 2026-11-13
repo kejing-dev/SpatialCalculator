@@ -116,3 +116,16 @@ S23 clear ask · S24 anchorFail · S25 seven errors · S26 fit box.
   in chip edit mode. K3 English count「Cards: n / 200」.
 - Tests: `Round3Test` (9). Real taps: `pico-cli interact act --text` fails on digit-only names, click keys by node id
   (`interact perform --node … --action-id 16`).
+
+## v0.1.4 (QA round 4)
+
+- q4-1 keyboard page (`CalcPage.Typing`): title row · [field (slot name inside) + 2-column slot grid + result, scrolls] beside the
+  keypad · fixed bottom bar `unit · [Paste] · [✓ Done]` that is never scrolled. Six English slots (How many boxes fit) = 3 rows.
+  The chip-edit page uses the same grid with 3 columns (`ChipRow(columns = …)`). `Round4Test.keyboardPageFitsEveryJobWithDoneVisible`
+  checks the dp budget for every job and shape; screenshots for every job × zh / en (`template <t>` → `typing on`).
+- B31 gates: every button is `BTN_H` = 64 dp, side-by-side gap `BTN_GAP` = 16 dp (Widgets.kt). Keypad keys stay 52 × 48 / 6 dp
+  (`gate:allow`, design S07).
+- K11 demo block: `PlaceBody.clearOf(..., view)` searches only spots 11°–40° off the view direction at 1.0–2.4 m (`inView`),
+  falls back to the plain slide only if none is free. K13 a record card's ⋯ → 存成模板 opens the same naming row (`NameEditor`)
+  with [取消] [好]. K14 the name field's accessibility name is the hint text. K12 saved template names stay as typed (user data,
+  not translated).

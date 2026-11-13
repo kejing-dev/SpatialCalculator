@@ -192,15 +192,82 @@ object PlaceBody {
      * From [base] it slides sideways (right of [head] → [base], up to 2 m; only if that fails, left) in 5 cm steps until its box keeps
      * [OTHERS_GAP_M] from every one of [others]; the height stays.
      */
-    fun clearOf(base: Vec3, head: Vec3, size: Vec3, others: List<Aabb>): Vec3 {
+    fun clearOf(base: Vec3, head: Vec3, size: Vec3, others: List<Aabb>, view: Vec3? = null): Vec3 {
         fun free(p: Vec3) = others.none { bodyBox(BodyPose(p, yawFacing(p, head)), size).intersects(it, OTHERS_GAP_M) }
         if (free(base)) return base
+        if (view != null) inView(base, head, size, view, ::free, others)?.let { return it }
         val r = rightOf(flatDir(head, base))
         // right first (away from the window the demo stands beside), only then left, so it never slides under the window
         for (k in 1..40) { val right = base + r * (0.05f * k); if (free(right)) return right }
         for (k in 1..40) { val left = base - r * (0.05f * k); if (free(left)) return left }
         return base
     }
+
+    /**
+     * K11 (QA4): the demo block that slides clear of a pinned body must stay inside the default view and not hide
+     * behind the window or the pinned body. Candidates: both sides of the view direction (the base's side first, then
+     * its mirror), sliding sideways and stepping nearer / farther (0.2 m steps); kept only if the whole block is
+     * [DEMO_MIN_DEG]–[DEMO_MAX_DEG] off the user's horizontal [view] and 1.0–2.4 m away. Best: free and not behind any
+     * of [others] as seen from the head; then free only. Closest to the base wins. Null when none is free.
+     */
+    fun inView(base: Vec3, head: Vec3, size: Vec3, view: Vec3, free: (Vec3) -> Boolean, others: List<Aabb> = emptyList()): Vec3? {
+        val f = Vec3(view.x, 0f, view.z).let { if (it.length < 1e-4f) Vec3(0f, 0f, -1f) else it.normalized() }
+        val rf = rightOf(f)
+        // the mirror of the base about the view direction (same distance and angle, other side)
+        val rel = Vec3(base.x - head.x, 0f, base.z - head.z)
+        val mirror = Vec3(head.x, base.y, head.z) + f * rel.dot(f) - rf * rel.dot(rf)
+        val cands = ArrayList<Pair<Int, Vec3>>()
+        for ((side, b) in listOf(0 to base, 1 to mirror)) {
+            val out = flatDir(head, b)
+            val r = rightOf(out)
+            for (d in listOf(0f, -0.2f, 0.2f, -0.4f, 0.4f, 0.6f)) for (k in -30..30) cands += side to (b + out * d + r * (0.05f * k))
+        }
+        val ok = cands.filter { (_, p) -> viewOk(p, head, size, f) && free(p) }
+        fun cost(sp: Pair<Int, Vec3>) = sp.first * 10f + sp.second.distanceTo(if (sp.first == 0) base else mirror)
+        return ok.filter { (_, p) -> others.none { o -> hidesBehind(p, head, size, o) } }.minByOrNull(::cost)?.second
+            ?: ok.minByOrNull(::cost)?.second
+    }
+
+    /** Horizontal angular span (deg, signed about [f]) of a box as seen from [head]. */
+    private fun span(b: Aabb, head: Vec3, f: Vec3): Pair<Float, Float> {
+        val rf = rightOf(f)
+        val angs = listOf(Vec3(b.min.x, 0f, b.min.z), Vec3(b.min.x, 0f, b.max.z), Vec3(b.max.x, 0f, b.min.z), Vec3(b.max.x, 0f, b.max.z)).map {
+            val d = Vec3(it.x - head.x, 0f, it.z - head.z)
+            Math.toDegrees(atan2(rf.dot(d).toDouble(), f.dot(d).toDouble())).toFloat()
+        }
+        return angs.min() to angs.max()
+    }
+
+    /** True when the block at [p] overlaps [o] in horizontal view angle (± 1°) and [o] stands nearer: [o] hides part of it. */
+    fun hidesBehind(p: Vec3, head: Vec3, size: Vec3, o: Aabb): Boolean {
+        val box = bodyBox(BodyPose(p, yawFacing(p, head)), size)
+        val f = flatDir(head, p)
+        val (a0, a1) = span(box, head, f)
+        val (b0, b1) = span(o, head, f)
+        if (a1 < b0 - 1f || b1 < a0 - 1f) return false
+        val dp = Vec3(p.x - head.x, 0f, p.z - head.z).length
+        val dq = Vec3(o.center.x - head.x, 0f, o.center.z - head.z).length
+        return dq <= dp + 0.15f
+    }
+
+    /** Whole block within [DEMO_MIN_DEG, DEMO_MAX_DEG] of [f] on one side, 1.0–2.4 m away (horizontal). */
+    fun viewOk(p: Vec3, head: Vec3, size: Vec3, f: Vec3): Boolean {
+        val to = Vec3(p.x - head.x, 0f, p.z - head.z)
+        val dist = to.length
+        if (dist < 1.0f || dist > 2.4f) return false
+        val d = to * (1f / dist)
+        val ang = Math.toDegrees(atan2(rightOf(f).dot(d).toDouble(), f.dot(d).toDouble())).toFloat()
+        val half = Math.toDegrees(atan2((maxOf(size.x, size.z) / 2f).toDouble(), dist.toDouble())).toFloat()
+        val a = abs(ang)
+        return a - half >= DEMO_MIN_DEG && a + half <= DEMO_MAX_DEG
+    }
+
+    /**
+     * Off the view direction: past the window's edge (QA4 emulator default view: the 560 dp window reaches ~15° off
+     * centre, the picture edge is ~42°) and inside the default view.
+     */
+    const val DEMO_MIN_DEG = 17f
+    const val DEMO_MAX_DEG = 38f
 
     const val OTHERS_GAP_M = 0.10f
     /** The fit box swings at least this far (about the head, horizontally) off the head → window direction (q1-4). */

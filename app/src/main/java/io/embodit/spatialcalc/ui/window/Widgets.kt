@@ -37,6 +37,12 @@ import io.embodit.spatialcalc.platform.TAG
 import io.embodit.spatialcalc.platform.SoundPlayer
 import io.embodit.spatialcalc.ui.theme.CalcColors
 
+/** B31 (gate button-height): the one button height of the app. */
+internal val BTN_H: Dp = 64.dp
+
+/** B31 (gate button-gap): the gap between buttons standing side by side. */
+internal val BTN_GAP: Dp = 16.dp
+
 /** Text that logs "OVERFLOW <panel>/<control>" whenever it is cut (profile D13; ui-audit runs read the log). */
 @Composable
 internal fun Txt(
@@ -55,11 +61,13 @@ internal fun Txt(
 }
 
 @Composable
-internal fun PrimaryButton(text: String, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, height: Dp = 56.dp) {
+internal fun PrimaryButton(text: String, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, height: Dp = BTN_H) {
+    // B31 (2026-11-12 gate button-height): every button is at least 64 dp tall, whatever the caller asks
+    val h = maxOf(height, BTN_H)
     Button(
         onClick = onClick, modifier = modifier, enabled = enabled,
-        size = ButtonDefaults.Regular.copy(height = height, minWidth = 96.dp),
-        shape = RoundedCornerShape(height / 2),
+        size = ButtonDefaults.Regular.copy(height = h, minWidth = 96.dp),
+        shape = RoundedCornerShape(h / 2),
         colors = ButtonDefaults.buttonColors(containerColor = PicoTheme.colorScheme.interaction, contentColor = PicoTheme.colorScheme.labelPrimaryLight),
     ) {
         // design-style: inherited-content-color Button
@@ -71,8 +79,8 @@ internal fun PrimaryButton(text: String, tag: String, onClick: () -> Unit, modif
 internal fun SecondaryButton(text: String, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, danger: Boolean = false, tall: Boolean = false, minWidth: Dp = 96.dp) {
     Button(
         onClick = onClick, modifier = modifier, enabled = enabled,
-        size = ButtonDefaults.Regular.copy(height = if (tall) 56.dp else 52.dp, minWidth = minWidth),
-        shape = RoundedCornerShape(if (tall) 32.dp else 26.dp),
+        size = ButtonDefaults.Regular.copy(height = BTN_H, minWidth = minWidth),
+        shape = RoundedCornerShape(BTN_H / 2),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (danger) CalcColors.Error else PicoTheme.colorScheme.fillSecondary,
             contentColor = if (danger) CalcColors.OnError else PicoTheme.colorScheme.labelPrimary,
@@ -89,8 +97,8 @@ internal fun ToggleButton(text: String, tag: String, on: Boolean, onClick: () ->
     val fg = if (on) PicoTheme.colorScheme.labelPrimaryLight else PicoTheme.colorScheme.labelPrimary
     Button(
         onClick = onClick, modifier = modifier, enabled = enabled,
-        size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 96.dp),
-        shape = RoundedCornerShape(26.dp),
+        size = ButtonDefaults.Regular.copy(height = BTN_H, minWidth = 96.dp),
+        shape = RoundedCornerShape(BTN_H / 2),
         colors = ButtonDefaults.buttonColors(containerColor = if (on) PicoTheme.colorScheme.interaction else PicoTheme.colorScheme.fillSecondary, contentColor = fg),
     ) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(if (on) CalcColors.PrimaryContainer else Color.Transparent).border(1.5.dp, fg, CircleShape))
@@ -168,8 +176,8 @@ internal fun MuteKey(muted: Boolean, onClick: () -> Unit, compact: Boolean = fal
     val label = androidx.compose.ui.res.stringResource(if (on) io.embodit.spatialcalc.R.string.unmute else io.embodit.spatialcalc.R.string.mute)
     Button(
         onClick = onClick,
-        size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 52.dp),
-        shape = RoundedCornerShape(26.dp),
+        size = ButtonDefaults.Regular.copy(height = BTN_H, minWidth = BTN_H),
+        shape = RoundedCornerShape(BTN_H / 2),
         colors = ButtonDefaults.buttonColors(containerColor = if (on) PicoTheme.colorScheme.interaction else PicoTheme.colorScheme.fillSecondary, contentColor = fg),
     ) {
         com.pico.spatial.ui.design.Icon(

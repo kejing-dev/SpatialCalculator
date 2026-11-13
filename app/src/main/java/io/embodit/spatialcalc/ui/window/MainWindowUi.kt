@@ -126,8 +126,8 @@ fun MainWindowUi() {
 private fun ToolKey(icon: Int, label: String, tag: String, enabled: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick, enabled = enabled,
-        size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 120.dp),
-        shape = RoundedCornerShape(26.dp),
+        size = ButtonDefaults.Regular.copy(height = BTN_H, minWidth = 120.dp),
+        shape = RoundedCornerShape(BTN_H / 2),
         colors = ButtonDefaults.buttonColors(containerColor = PicoTheme.colorScheme.fillSecondary, contentColor = PicoTheme.colorScheme.labelPrimary),
     ) {
         Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(22.dp), tint = PicoTheme.colorScheme.labelPrimary)
@@ -166,7 +166,7 @@ private fun RecordsPage(state: CalcState, settings: Settings, graph: Graph) {
         }
         if (state.confirm == Confirm.DELETE_CARD) {
             Txt(stringResource(R.string.delete_ask), "records/delete-ask", style = PicoTheme.typography.titleMedium)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 SecondaryButton(stringResource(R.string.btn_cancel), "records/delete-cancel", onClick = { flow.confirmNo() }, modifier = Modifier.weight(1f))
                 SecondaryButton(stringResource(R.string.btn_delete), "records/delete-yes", danger = true, onClick = { flow.confirmYes() }, modifier = Modifier.weight(1f))
             }
@@ -195,10 +195,11 @@ private fun CardRow(c: Card, open: Boolean, fill: Boolean, settings: Settings, g
     val text = resultText(r, c.template, c.resultUnit, settings.imperial) ?: "—"
     val defaultName = templateDefaultName(c)
     var menu by androidx.compose.runtime.remember(c.id, open) { androidx.compose.runtime.mutableStateOf(false) }
+    var naming by androidx.compose.runtime.remember(c.id, open) { androidx.compose.runtime.mutableStateOf(false) }
     Column(
         modifier.fillMaxWidth().then(if (open) displayFrame() else Modifier.clip(RoundedCornerShape(18.dp)).background(PicoTheme.colorScheme.fillSecondary))
             .then(if (open) Modifier else Modifier.clickable { flow.expand(c.id) }).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(BTN_GAP, Alignment.CenterVertically),
     ) {
         val pinText = when { c.pinned && c.elsewhere -> stringResource(R.string.records_elsewhere); c.pinned -> "📍 " + stringResource(R.string.records_pinned); else -> null }
         if (!open) {
@@ -213,7 +214,9 @@ private fun CardRow(c: Card, open: Boolean, fill: Boolean, settings: Settings, g
             }
             return@Column
         }
-        Row(Modifier.fillMaxWidth().then(if (fill) Modifier.weight(1f, fill = false) else Modifier), verticalAlignment = Alignment.CenterVertically) {
+        // K13: while naming, the card shows its result on one line so the name row has room
+        if (naming) Txt("$text · ${templateName(c.template, c.customName)}", "records/naming-result", style = PicoTheme.typography.titleMedium, color = CalcColors.TertiaryText, maxLines = 2)
+        else Row(Modifier.fillMaxWidth().then(if (fill) Modifier.weight(1f, fill = false) else Modifier), verticalAlignment = Alignment.CenterVertically) {
             Icon(painter = painterResource(templateIcon(c.template)), contentDescription = null, modifier = Modifier.size(if (fill) 160.dp else 96.dp, if (fill) 120.dp else 72.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -225,18 +228,21 @@ private fun CardRow(c: Card, open: Boolean, fill: Boolean, settings: Settings, g
                 Txt(formula, "records/formula", style = PicoTheme.typography.bodyMedium, maxLines = 4)
             }
         }
-        if (!menu) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (naming) {
+            // K13 (QA4): a card's ⋯ → 存成模板 asks for the name too (same row as the Calc page ⋯, with [取消])
+            NameEditor(defaultName, "records", onCancel = { naming = false }, onOk = { naming = false; flow.saveAsTemplate(it, c.id) })
+        } else if (!menu) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 SecondaryButton(stringResource(R.string.btn_replay), "records/replay", onClick = { flow.replay(c.id) }, modifier = Modifier.weight(1f))
                 SecondaryButton("⋯ " + stringResource(R.string.btn_more), "records/more", onClick = { menu = true }, modifier = Modifier.weight(1f))
             }
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 SecondaryButton(stringResource(if (c.pinned) R.string.btn_unpin else R.string.btn_pin), "records/pin-toggle", onClick = { menu = false; if (c.pinned) flow.unpinCard(c.id) else flow.pinCard(c.id) }, enabled = c.pose != null, modifier = Modifier.weight(1f))
                 SecondaryButton(stringResource(R.string.btn_bring), "records/bring", onClick = { menu = false; graph.bringCard(c.id) }, enabled = c.size != null, modifier = Modifier.weight(1f))
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SecondaryButton(stringResource(R.string.btn_save_template), "records/template", onClick = { menu = false; flow.saveAsTemplate(defaultName, c.id) }, modifier = Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
+                SecondaryButton(stringResource(R.string.btn_save_template), "records/template", onClick = { menu = false; naming = true }, modifier = Modifier.weight(1f))
                 SecondaryButton(stringResource(R.string.btn_delete), "records/delete", danger = true, onClick = { menu = false; flow.deleteAsk(c.id) }, modifier = Modifier.weight(1f))
                 SecondaryButton(stringResource(R.string.btn_close), "records/more-close", onClick = { menu = false }, modifier = Modifier.weight(1f))
             }
@@ -274,11 +280,11 @@ private fun SettingsPage(state: CalcState, settings: Settings, graph: Graph) {
         StepRow(stringResource(R.string.set_units), stringResource(if (settings.imperial) R.string.units_imperial else R.string.units_metric), "settings/units") {
             flow.updateSettings { it.copy(imperial = !it.imperial) }
         }
-        OptionRow(stringResource(R.string.set_volume), "settings/volume", labelWidth = 120.dp, rowHeight = 56.dp) {
+        OptionRow(stringResource(R.string.set_volume), "settings/volume", labelWidth = 120.dp, rowHeight = BTN_H) {
             // D15: mute one tap away, next to the level
             Button(
                 onClick = { flow.updateSettings { it.copy(muted = !it.muted) } },
-                size = ButtonDefaults.Regular.copy(height = 52.dp, minWidth = 52.dp), shape = androidx.compose.foundation.shape.CircleShape,
+                size = ButtonDefaults.Regular.copy(height = BTN_H, minWidth = BTN_H), shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (settings.muted) PicoTheme.colorScheme.interaction else PicoTheme.colorScheme.fillSecondary,
                     contentColor = if (settings.muted) PicoTheme.colorScheme.labelPrimaryLight else PicoTheme.colorScheme.labelPrimary,
@@ -290,13 +296,13 @@ private fun SettingsPage(state: CalcState, settings: Settings, graph: Graph) {
                     tint = if (settings.muted) PicoTheme.colorScheme.labelPrimaryLight else PicoTheme.colorScheme.labelPrimary,
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(BTN_GAP))
             VolumeSlider(settings.volume, { v -> flow.updateSettings { it.copy(volume = v, muted = false) } }, Modifier.weight(1f))
         }
         SecondaryButton(stringResource(R.string.btn_settings_more) + "  ›", "settings/more", onClick = { flow.settingsMore(true) }, modifier = Modifier.fillMaxWidth(), tall = true)
         if (state.confirm != Confirm.EXIT) {
             // q3-4 (D44): [重开面板] (this app's「叫回面前」) and [退出应用] side by side on the first screen
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 SecondaryButton(stringResource(R.string.btn_reopen_window), "settings/reopen", onClick = { graph.window.recall() }, modifier = Modifier.weight(1f), tall = true)
                 SecondaryButton(stringResource(R.string.btn_exit_app), "settings/exit", danger = true, onClick = { flow.exitAsk() }, modifier = Modifier.weight(1f), tall = true)
             }
@@ -304,7 +310,7 @@ private fun SettingsPage(state: CalcState, settings: Settings, graph: Graph) {
             // D26: the confirmation opens in place, inside this window
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Txt(stringResource(R.string.exit_ask), "settings/exit-ask", style = PicoTheme.typography.titleMedium, maxLines = 2)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                     SecondaryButton(stringResource(R.string.btn_cancel), "settings/exit-cancel", onClick = { flow.confirmNo() }, modifier = Modifier.weight(1f), tall = true)
                     SecondaryButton(stringResource(R.string.btn_exit), "settings/exit-yes", danger = true, onClick = { exitApp(context, navigator, graph) }, modifier = Modifier.weight(1f), tall = true)
                 }
@@ -332,7 +338,7 @@ private fun SettingsMorePage(settings: Settings, graph: Graph) {
     val flow = graph.flow
     val ops = listOf(0 to stringResource(R.string.op_low), 1 to stringResource(R.string.op_mid), 2 to stringResource(R.string.op_high))
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-        Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(BTN_H), verticalAlignment = Alignment.CenterVertically) {
             SecondaryButton("‹ " + stringResource(R.string.btn_back), "settings/back", onClick = { flow.settingsMore(false) }, minWidth = 112.dp)
             Spacer(Modifier.width(16.dp))
             Txt(stringResource(R.string.btn_settings_more), "settings-more/title", style = PicoTheme.typography.titleLarge, modifier = Modifier.weight(1f))
@@ -341,7 +347,7 @@ private fun SettingsMorePage(settings: Settings, graph: Graph) {
             flow.updateSettings { it.copy(opacity = (it.opacity + 1) % 3) }
         }
         ToggleButton(stringResource(R.string.set_snap), "settings/snap", settings.snapPins, { flow.updateSettings { it.copy(snapPins = !it.snapPins) } }, Modifier.fillMaxWidth())
-        OptionRow(stringResource(R.string.set_table), "settings/table", labelWidth = 150.dp, rowHeight = 56.dp) {
+        OptionRow(stringResource(R.string.set_table), "settings/table", labelWidth = 150.dp, rowHeight = BTN_H) {
             SecondaryButton("−", "settings/table-minus", onClick = { flow.updateSettings { it.copy(tableHeight = ((it.tableHeight - 0.05f) * 100).let { v -> Math.round(v) / 100f }.coerceIn(0.4f, 1.1f)) } }, minWidth = 64.dp)
             Txt("${Fmt.plain(settings.tableHeight.toDouble())} m", "settings/table-value", style = PicoTheme.typography.titleMedium, modifier = Modifier.weight(1f), align = androidx.compose.ui.text.style.TextAlign.Center)
             SecondaryButton("+", "settings/table-plus", onClick = { flow.updateSettings { it.copy(tableHeight = ((it.tableHeight + 0.05f) * 100).let { v -> Math.round(v) / 100f }.coerceIn(0.4f, 1.1f)) } }, minWidth = 64.dp)
