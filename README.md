@@ -2,7 +2,7 @@
 
 ![空间计算器 Spatial Calculator](docs/poster.jpg)
 
-[中文](#中文) · [English](#english)
+[中文](#中文) · [English](#english) · 当前版本 / Current version: **v0.1.6** · [CHANGELOG](CHANGELOG.md)
 
 ## 中文
 
@@ -14,11 +14,11 @@ PICO OS 6 混合现实应用（PICO Spatial SDK 6.1.9）：Stage 透视场景放
 
 | | |
 |---|---|
-| ![这缸多少升](docs/shot-01.jpg) 这缸多少升：点两下量了三边，按 = 一块 1:1 水块长在量的地方旁边 | ![要算什么](docs/shot-02.jpg) 六件常用的事，或者自己写算式 |
-| ![贴砖](docs/shot-03.jpg) 这面墙贴几块砖：砖面直接贴在墙上，18 块 · 多买 2 块 | ![拟合盒](docs/shot-04.jpg) 这格能放几箱：拟合盒对齐柜格，幽灵箱码进格子 |
-| ![粘贴](docs/shot-05.jpg) 粘贴商品页的「60×30×35 cm」自动拆成三个数 | ![记录](docs/shot-06.jpg) 记录：重放实体、钉住、带到面前、存成模板 |
+| ![这缸多少升](docs/shot-01.jpg) 这缸多少升：点两下量了三边，按 = 一块 1:1 水块长在量的地方旁边 | ![要算什么](docs/shot-02.jpg) 要算什么：六件常用的事，或者自己写算式 |
+| ![贴砖](docs/shot-03.jpg) 这面墙贴几块砖：砖面直接贴在墙上，18 块 · 多买 2 块 | ![拟合盒](docs/shot-04.jpg) 这格能放几箱：拟合盒对齐柜格，幽灵箱码进格子，放得下 30 箱 |
+| ![粘贴](docs/shot-05.jpg) 粘贴商品页的「60×30×35 cm」自动拆成三个数，底栏 [粘贴][✓ 收起] 固定 | ![记录](docs/shot-06.jpg) 记录：每次量算一张卡，重放实体；钉住、存成模板在「⋯ 更多」里 |
 
-截图在模拟器上拍，3D 操作由调试广播驱动，**非真实手势录像**。
+截图是 v0.1.6 在模拟器上拍的，3D 操作由调试广播驱动，**非真实手势录像**。
 
 ### 能算什么
 
@@ -32,7 +32,8 @@ PICO OS 6 混合现实应用（PICO Spatial SDK 6.1.9）：Stage 透视场景放
 
 - 对着东西点两下落钉（手柄射线或眼动 + 捏合）；也可以键盘打数或粘贴尺寸
 - 结果体可以拖过去比一比，摇杆左右转；钉住后下次打开还在原处
-- 记录页存下每次量算；公制 / 英制、L / gal 随时切；静音开关；设置里可以退出应用
+- 每页只留要用的几个键，不常用的收进「⋯ 更多」；静音键一直在
+- 记录页存下每次量算；公制 / 英制、L / gal 随时切；设置里可以重开面板、退出应用
 - 中英双语，全部本机运行，不联网、不需要账号
 
 ### 安装
@@ -46,7 +47,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 pico-cli app launch io.embodit.spatialcalc
 ```
 
-已知问题：没有手柄射线时（如模拟器）拟合盒开在视野右下角，要转头看；关窗后的「打开面板」按钮风格和应用其他按钮不统一；英文记录页单数写成「1 cards」。v0.1.1 还没在头显上验过。
+已知问题：选活页存了模板后可点控件 17–18 个（题目 + 模板本身是内容）。v0.1.6 已装到头显，还没戴上验：每个手柄只一条射线、眼手捏合落钉、拖结果体、外放响度。
 
 ## English
 
@@ -59,10 +60,10 @@ A PICO OS 6 mixed-reality app (PICO Spatial SDK 6.1.9): a passthrough Stage for 
 | | |
 |---|---|
 | ![Tank](docs/shot-en-01.jpg) How many liters in this tank: three sides measured, = grows a 1:1 water block beside it | ![Pick](docs/shot-en-02.jpg) Six everyday jobs, or write your own formula |
-| ![Tiles](docs/shot-en-03.jpg) Tiles for this wall: the tiles sit on the wall, 18 tiles, grab 2 extra | ![Fit box](docs/shot-en-04.jpg) How many boxes fit: a fit box lines up with the cell, ghost boxes stack inside |
-| ![Paste](docs/shot-en-05.jpg) Paste "60x30x35 cm" from a product page and it splits into three numbers | ![Records](docs/shot-en-06.jpg) Records: show again, pin, bring in front, save as template |
+| ![Tiles](docs/shot-en-03.jpg) Tiles for this wall: the tiles sit on the wall, 18 tiles, grab 2 extra | ![Fit box](docs/shot-en-04.jpg) How many boxes fit: a fit box lines up with the cell, 30 ghost boxes stack inside |
+| ![Paste](docs/shot-en-05.jpg) Paste "60x30x35 cm" from a product page and it splits into three numbers; [Paste] / [✓ Done] stay on the bottom bar | ![Records](docs/shot-en-06.jpg) Records: one card per calculation, show it again; pin and save as template under "⋯ More" |
 
-Screenshots were taken on the emulator; 3D input was driven by debug broadcasts, **not a recording of real hand input**.
+Screenshots are v0.1.6 on the emulator; 3D input was driven by debug broadcasts, **not a recording of real hand input**.
 
 ### What it does
 
@@ -76,7 +77,8 @@ Screenshots were taken on the emulator; 3D input was driven by debug broadcasts,
 
 - Tap two points to drop pins (controller ray or gaze + pinch); or type / paste sizes
 - Drag a result body to compare, turn it with the thumbstick; pin it and it is still there next time
-- Records keep every calculation; metric / imperial, L / gal; mute switch; Quit app in Settings
+- Each page keeps only the buttons you need; the rest live under "⋯ More"; Mute is always there
+- Records keep every calculation; metric / imperial, L / gal; Reopen panel and Quit app in Settings
 - Chinese and English, fully offline, no account
 
 ### Install
@@ -90,7 +92,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 pico-cli app launch io.embodit.spatialcalc
 ```
 
-Known issues: without a controller ray (e.g. on the emulator) the fit box opens at the lower right and you have to turn your head; the "Open panel" button after closing the window does not match the other buttons; the English records page says "1 cards". v0.1.1 has not been tested on a headset yet.
+Known issues: with saved templates the pick page has 17–18 tappable items (the jobs and templates are the content). v0.1.6 is installed on a headset but not yet checked there: one ray per controller, gaze + pinch pins, dragging result bodies, speaker loudness.
 
 ## Credits
 
