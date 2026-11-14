@@ -164,8 +164,6 @@ class StageScene(private val graph: Graph) : RoomEnv {
     private var pinnedKey = ""
     private var flash: Entity? = null
     private var flashUntil = 0L
-    private var rayEntity: Entity? = null
-    private var rayDot: Entity? = null
     private var lastRay: Pair<Vec3, Vec3>? = null
     private var lastRayHitPin: PinPoint? = null
 
@@ -645,29 +643,23 @@ class StageScene(private val graph: Graph) : RoomEnv {
         }
     }
 
-    /** The app draws its own controller ray and its hit dot (D41), and remembers the hit for [拟合盒]. */
+    /**
+     * v0.1.6 (profile D41 更正, gate double-ray): the system already draws the controller ray in Full Space, so the app
+     * no longer draws a beam or a hit dot of its own (that was a second ray). It only reads the controller pose,
+     * resolves the hit against its own colliders and remembers it for [拟合盒] / pins.
+     */
     private fun controllerRay() {
-        val r = res ?: return
-        val root = root ?: return
         val p = controller ?: return
-        if (runCatching { p.supportState }.getOrNull() != DataProvider.SupportState.SUPPORTED) { hideRay(); return }
-        val data = runCatching { p.latestData }.getOrNull() ?: run { hideRay(); return }
-        val pose = data.right ?: data.left ?: run { hideRay(); return }
+        if (runCatching { p.supportState }.getOrNull() != DataProvider.SupportState.SUPPORTED) { lastRayHitPin = null; return }
+        val data = runCatching { p.latestData }.getOrNull() ?: run { lastRayHitPin = null; return }
+        val pose = data.right ?: data.left ?: run { lastRayHitPin = null; return }
         val o = Vec3(pose.position.x, pose.position.y, pose.position.z)
         val q = Quat4(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
         val d = q.rotate(Vec3.AHEAD).normalized()
-        if (!o.isFinite() || (o.x == 0f && o.y == 0f && o.z == 0f)) { hideRay(); return }
+        if (!o.isFinite() || (o.x == 0f && o.y == 0f && o.z == 0f)) { lastRayHitPin = null; return }
         lastRay = o to d
-        val hit = resolveLine(o, d, Channel.RAY)
-        lastRayHitPin = hit
-        val len = hit?.rangeM ?: 3f
-        val ray = rayEntity ?: ModelEntity(r.cube, r.ray).apply { setName("ctrlRay"); root.addChild(this) }.also { rayEntity = it }
-        ray.place(position = o + d * (len / 2f), rotation = alongX(d), scale = Vec3(len, 0.002f, 0.002f))
-        val dot = rayDot ?: ModelEntity(r.sphere, r.white).apply { setName("ctrlDot"); root.addChild(this) }.also { rayDot = it }
-        if (hit != null) dot.place(position = hit.point, scale = Vec3(0.015f, 0.015f, 0.015f)) else dot.place(position = STOW)
+        lastRayHitPin = resolveLine(o, d, Channel.RAY)
     }
-
-    private fun hideRay() { rayEntity?.place(position = STOW); rayDot?.place(position = STOW) }
 
     /** Head inside the body, or the body in the head → window sight cone: 25 % + a hint, never pushed (R1-3). */
     private fun fadeCheck() {

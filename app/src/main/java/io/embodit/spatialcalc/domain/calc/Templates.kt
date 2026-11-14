@@ -54,11 +54,21 @@ object Templates {
 
     /** Operator glyph shown between slot chips in a template formula (display only; the maths is [Evaluate]). */
     fun joiner(t: TemplateId, round: Boolean, index: Int): String = when (t) {
-        TemplateId.TANK -> if (round) (if (index == 0) "π·(½·" else ")²×") else "×"
+        // v0.1.6: round tank reads π·(½·直径)²×水深 — the opening part is [prefix], the joiner closes the bracket
+        TemplateId.TANK -> if (round) ")²×" else "×"
         TemplateId.TILE -> when (index) { 0 -> "÷"; 1 -> "|"; 2 -> "×"; else -> "+" }
         TemplateId.PAINT -> when (index) { 0 -> "×"; 1 -> "÷"; else -> "×" }
         TemplateId.FIT -> if (index == 2) "|" else "×"
         else -> "×"
+    }
+
+    /** Glyph shown before the first slot chip (display only): the round tank's π·(½· ; empty for the rest. */
+    fun prefix(t: TemplateId, round: Boolean): String = if (t == TemplateId.TANK && round) "π·(½·" else ""
+
+    /** The whole template formula as display text, slot names in order: what the formula strip shows. */
+    fun displayFormula(t: TemplateId, round: Boolean, names: List<String>): String = buildString {
+        append(prefix(t, round))
+        names.forEachIndexed { i, n -> if (i > 0) append(joiner(t, round, i - 1)); append(n) }
     }
 
     /** Standard rug sizes (cm) the rug result is compared with. */

@@ -137,3 +137,10 @@ S23 clear ask · S24 anchorFail · S25 seven errors · S26 fit box.
   `tpl_short_*`: en Tank / Round tank / Tiles / Paint / Boxes / Rug / Formula; zh = the job names (round tank 圆缸多少升).
   Job page template tile: a name ending in a stamp shows the date on its own line; the tile grows (>= 64 dp), never cuts.
   `DefaultNameTest`. Debug: `template-save default` (the naming row's default), `naming on/off`, `custom i` (pick template i).
+
+## v0.1.6 (QA round 6)
+
+- q6-1: every gap between clickables is `BTN_GAP` (16 dp); job cards with saved templates 120 dp so six templates fit.
+- Round tank strip: `Templates.prefix` ("π·(½·") before the first chip, joiner ")²×" (`displayFormula`, `FormulaStripTest`).
+- D41 correction (double ray): the app no longer draws a controller beam or hit dot; the system ray is the only ray.
+  `controllerRay()` only resolves the hit for fit box / pins.

@@ -112,22 +112,22 @@ private fun PickJob(state: CalcState, settings: Settings, graph: Graph) {
     val flow = graph.flow
     val fixed = listOf(TemplateId.TANK, TemplateId.TILE, TemplateId.PAINT, TemplateId.FIT, TemplateId.RUG, TemplateId.FREE)
     // v0.1.2 (B31): no Toolbar on this page, no subtitle / footer line; the six jobs are the page
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
         PageTitle(stringResource(R.string.pick_title), "pick") { MuteKey(settings.muted, onClick = { flow.toggleMute() }) }
         // K6 (QA3): saved templates must not sit under the fold as a 6 px sliver. With templates the six job cards get
         // shorter and the templates follow as a labelled row of buttons, so up to six of them fit without scrolling.
         val customs = state.customs
-        val cardH = if (customs.isEmpty()) 218.dp else 140.dp
-        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val cardH = if (customs.isEmpty()) 218.dp else 120.dp // v0.1.6: 140 → 120 (2-line English labels fit, OVERFLOW 0) so the 16 dp gaps (q6-1) keep two template rows above the fold
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
             fixed.chunked(3).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                     row.forEach { t -> JobCard(templateIcon(t), templateName(t), "pick/${t.id}", Modifier.weight(1f), cardH) { flow.pick(t) } }
                 }
             }
             if (customs.isNotEmpty()) {
                 Txt(stringResource(R.string.my_templates, customs.size), "pick/mine", style = PicoTheme.typography.labelLarge, color = PicoTheme.colorScheme.labelSecondary)
                 customs.chunked(3).forEach { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                         row.forEach { c -> CustomTile(c.name, "pick/custom-${c.id}", Modifier.weight(1f)) { flow.pickCustom(c.id) } }
                         repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
@@ -165,7 +165,7 @@ private fun JobCard(icon: Int, name: String, tag: String, modifier: Modifier, he
         modifier.height(height).clip(RoundedCornerShape(22.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceEvenly,
     ) {
-        Icon(painter = painterResource(icon), contentDescription = null, modifier = if (small) Modifier.size(88.dp, 66.dp) else Modifier.size(128.dp, 96.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
+        Icon(painter = painterResource(icon), contentDescription = null, modifier = if (small) Modifier.size(64.dp, 48.dp) else Modifier.size(128.dp, 96.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
         Txt(name, tag, style = PicoTheme.typography.labelLarge, maxLines = 2, align = TextAlign.Center)
     }
 }
@@ -274,6 +274,9 @@ private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean
             }
             if (state.tokens.isEmpty()) ChipButton("…", "calc/chip-empty", 0, true) { flow.openTyping() }
         } else {
+            io.embodit.spatialcalc.domain.calc.Templates.prefix(state.template!!, state.round).takeIf { it.isNotEmpty() }?.let {
+                Txt(it, "calc/join0", style = TextStyle(fontSize = 20.sp), color = CalcColors.InkSecondary, modifier = Modifier.padding(top = 10.dp))
+            }
             state.slots.forEachIndexed { i, v ->
                 if (i > 0) Txt(io.embodit.spatialcalc.domain.calc.Templates.joiner(state.template!!, state.round, i - 1), "calc/join$i", style = TextStyle(fontSize = 20.sp), color = CalcColors.InkSecondary, modifier = Modifier.padding(top = 10.dp))
                 val kind = when { v.q == null -> 0; v.source == Source.TAPE || v.source == Source.FITBOX -> 1; else -> 2 }
@@ -288,7 +291,7 @@ private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean
     if (wrap && !state.tokensMode && columns > 0) {
         // q4-1 (QA4): the template slots as a fixed grid (no joiners): six English slots take three rows of two on the
         // keyboard page instead of six rows of one; the formula itself is the result line under the grid
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
             state.slots.withIndex().chunked(columns).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                     row.forEach { (i, v) ->
@@ -303,7 +306,7 @@ private fun ChipRow(state: CalcState, unit: LenUnit, graph: Graph, wrap: Boolean
             }
         }
     } else if (wrap) {
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) { content() }
     } else {
         Row(Modifier.fillMaxWidth().height(BTN_H).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(BTN_GAP), verticalAlignment = Alignment.CenterVertically) { content() }
     }
@@ -336,6 +339,9 @@ private fun FormulaStrip(state: CalcState, unit: LenUnit, graph: Graph, enabled:
             }
             if (state.tokens.isEmpty()) ChipLabel("…", "calc/strip-empty", 0, false)
         } else {
+            io.embodit.spatialcalc.domain.calc.Templates.prefix(state.template!!, state.round).takeIf { it.isNotEmpty() }?.let {
+                ChipLabel(it, "calc/strip-join0", 3, false)
+            }
             state.slots.forEachIndexed { i, v ->
                 if (i > 0) ChipLabel(io.embodit.spatialcalc.domain.calc.Templates.joiner(state.template!!, state.round, i - 1), "calc/strip-join$i", 3, false)
                 val kind = when { v.q == null -> 0; v.source == Source.TAPE || v.source == Source.FITBOX -> 1; else -> 2 }
@@ -397,7 +403,7 @@ private fun Formula(state: CalcState, settings: Settings, graph: Graph) {
 private fun MoreSheet(state: CalcState, settings: Settings, graph: Graph) {
     val flow = graph.flow
     val items = io.embodit.spatialcalc.domain.session.Chrome.more(state)
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
         items.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 row.forEach { item ->
@@ -470,7 +476,7 @@ private fun PrimaryAction(state: CalcState, graph: Graph) {
 private fun ActionRow(state: CalcState, graph: Graph) {
     val flow = graph.flow
     when {
-        state.confirm == Confirm.CLEAR -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        state.confirm == Confirm.CLEAR -> Column(verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
             Txt(stringResource(R.string.clear_ask), "calc/clear-ask", style = PicoTheme.typography.titleMedium)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 SecondaryButton(stringResource(R.string.btn_cancel), "calc/clear-cancel", onClick = { flow.confirmNo() }, modifier = Modifier.weight(1f), tall = true)
@@ -510,7 +516,7 @@ private fun NameRow(state: CalcState, graph: Graph) {
 internal fun NameEditor(default: String, tag: String, onCancel: () -> Unit, onOk: (String) -> Unit) {
     var name by remember(default) { mutableStateOf(default) }
     val hint = stringResource(R.string.name_hint)
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
         Txt(hint, "$tag/name-hint", style = PicoTheme.typography.bodyMedium, color = PicoTheme.colorScheme.labelSecondary, maxLines = 2)
         BasicTextField(
             value = name, onValueChange = { name = it.take(24) }, singleLine = true,
@@ -572,13 +578,13 @@ private fun Typing(state: CalcState, settings: Settings, graph: Graph) {
     val flow = graph.flow
     val context = LocalContext.current
     val unit = state.typingUnit
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
         Row(Modifier.fillMaxWidth().height(BTN_H), verticalAlignment = Alignment.CenterVertically) {
             Txt(templateName(state.template, state.customName), "typing/title", style = PicoTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2)
             MuteKey(settings.muted, onClick = { flow.toggleMute() }, compact = true) // q3-1
         }
         Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
-            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 val target = if (state.tokensMode) stringResource(R.string.chip_free_num) else state.slots.getOrNull(state.active)?.let { slotName(it.def.key) } ?: ""
                 // q4-1: the「typing into」line lives inside the field (name left, number right), one row less than v0.1.3
                 Row(

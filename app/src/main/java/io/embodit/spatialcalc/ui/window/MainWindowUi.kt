@@ -152,7 +152,7 @@ private fun RecordsPage(state: CalcState, settings: Settings, graph: Graph) {
     val flow = graph.flow
     // v0.1.2 (B31): title + count (no [新建] / 「接着量一个」tiles: one primary at the bottom); one card open, its
     // secondary actions behind its own ⋯
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
         PageTitle(stringResource(R.string.tab_records), "records") {
             Txt(stringResource(R.string.records_count, state.cards.size), "records/count", style = PicoTheme.typography.labelLarge, color = PicoTheme.colorScheme.labelSecondary)
         }
@@ -178,7 +178,7 @@ private fun RecordsPage(state: CalcState, settings: Settings, graph: Graph) {
         // (B31): the open card takes the free height (no empty band, D44); with 2+ cards one row steps to the next.
         val openIdx = state.cards.indexOfFirst { it.id == state.expandedCard }.coerceAtLeast(0)
         val c = state.cards[openIdx]
-        Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
             key(c.id) { CardRow(c, true, true, settings, graph, Modifier.weight(1f)) }
         }
         if (state.cards.size > 1) {
@@ -308,7 +308,7 @@ private fun SettingsPage(state: CalcState, settings: Settings, graph: Graph) {
             }
         } else {
             // D26: the confirmation opens in place, inside this window
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 Txt(stringResource(R.string.exit_ask), "settings/exit-ask", style = PicoTheme.typography.titleMedium, maxLines = 2)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                     SecondaryButton(stringResource(R.string.btn_cancel), "settings/exit-cancel", onClick = { flow.confirmNo() }, modifier = Modifier.weight(1f), tall = true)

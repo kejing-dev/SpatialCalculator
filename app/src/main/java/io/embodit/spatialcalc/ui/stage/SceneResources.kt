@@ -66,7 +66,6 @@ internal class SceneResources private constructor() {
     lateinit var steel: Material; private set
     lateinit var flash: Material; private set
     lateinit var white: Material; private set
-    lateinit var ray: Material; private set
     lateinit var fitFace: Material; private set
     lateinit var handle: Material; private set
     lateinit var specLine: Material; private set
@@ -126,7 +125,6 @@ internal class SceneResources private constructor() {
                 async(io) { r.steel = unlit(CalcColors.Steel).keep() },
                 async(io) { r.flash = unlit(CalcColors.TapeYellow, 0.6f).keep() },
                 async(io) { r.white = unlit(Color(0xFFFFFFFF)).keep() },
-                async(io) { r.ray = unlit(Color(0xFFFFFFFF), 0.55f).keep() },
                 async(io) { r.fitFace = unlit(CalcColors.TapeYellow, 0.15f).keep() },
                 async(io) { r.handle = unlit(CalcColors.TapeYellow).keep() },
                 async(io) { r.specLine = unlit(Color(0xFFEFE6D8), 0.8f).keep() },
