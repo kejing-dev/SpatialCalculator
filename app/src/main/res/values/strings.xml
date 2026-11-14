@@ -13,6 +13,15 @@
     <string name="tpl_fit">How many boxes fit</string>
     <string name="tpl_rug">Rug for this spot</string>
     <string name="tpl_free">Free formula</string>
+    <!-- v0.1.5 q5-1: default template names = short job name + date -->
+    <string name="tpl_short_tank">Tank</string>
+    <string name="tpl_short_tank_round">Round tank</string>
+    <string name="tpl_short_tile">Tiles</string>
+    <string name="tpl_short_paint">Paint</string>
+    <string name="tpl_short_fit">Boxes</string>
+    <string name="tpl_short_rug">Rug</string>
+    <string name="tpl_short_free">Formula</string>
+    <string name="tpl_short_custom">Template</string>
     <string name="tpl_custom">My template</string>
     <string name="tip_tank">Measure the inside. Depth to the line you plan to fill</string>
     <string name="tip_tile">Change the tile size, the wall re-tiles on the spot</string>

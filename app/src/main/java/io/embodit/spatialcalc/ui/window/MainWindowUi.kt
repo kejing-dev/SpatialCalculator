@@ -254,7 +254,7 @@ private fun cardResult(c: Card) =
     if (c.tokens.isNotEmpty()) io.embodit.spatialcalc.domain.calc.Evaluate.free(c.tokens) else io.embodit.spatialcalc.domain.calc.Evaluate.template(c.template, c.round, c.slots)
 
 @Composable
-private fun templateDefaultName(c: Card): String = "${templateName(c.template, c.customName)} ${fmtDate(c.createdAt)}"
+private fun templateDefaultName(c: Card): String = defaultTemplateName(c.template, c.round, c.customName, c.createdAt)
 
 // ------------------------------------------------------------------ Settings (S15 / S16)
 

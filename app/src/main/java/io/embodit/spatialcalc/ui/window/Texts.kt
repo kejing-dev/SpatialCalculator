@@ -26,6 +26,19 @@ fun templateName(t: TemplateId?, custom: String? = null): String = custom ?: str
     },
 )
 
+/** v0.1.5 (q5-1): the short job name that starts a default template name. */
+fun shortNameRes(t: TemplateId?, round: Boolean = false): Int = when (t) {
+    TemplateId.TANK -> if (round) R.string.tpl_short_tank_round else R.string.tpl_short_tank
+    TemplateId.TILE -> R.string.tpl_short_tile; TemplateId.PAINT -> R.string.tpl_short_paint
+    TemplateId.FIT -> R.string.tpl_short_fit; TemplateId.RUG -> R.string.tpl_short_rug; TemplateId.CUSTOM -> R.string.tpl_short_custom
+    else -> R.string.tpl_short_free
+}
+
+/** v0.1.5 (q5-1): default template name, e.g. "Tank 11-12 20:42" / "这缸多少升 11-12 20:42" (≤ 24 chars, date kept). */
+@Composable
+fun defaultTemplateName(t: TemplateId?, round: Boolean, custom: String?, ms: Long): String =
+    io.embodit.spatialcalc.domain.calc.DefaultName.of(custom ?: stringResource(shortNameRes(t, round)), ms)
+
 fun templateIcon(t: TemplateId?): Int = when (t) {
     TemplateId.TANK -> R.drawable.tpl_tank; TemplateId.TILE -> R.drawable.tpl_tile; TemplateId.PAINT -> R.drawable.tpl_paint
     TemplateId.FIT -> R.drawable.tpl_fit; TemplateId.RUG -> R.drawable.tpl_rug; TemplateId.CUSTOM -> R.drawable.tpl_custom

@@ -13,6 +13,15 @@
     <string name="tpl_fit">这格能放几箱</string>
     <string name="tpl_rug">这块地要多大地毯</string>
     <string name="tpl_free">自己算</string>
+    <!-- v0.1.5 q5-1: default template names = short job name + date -->
+    <string name="tpl_short_tank">这缸多少升</string>
+    <string name="tpl_short_tank_round">圆缸多少升</string>
+    <string name="tpl_short_tile">这面墙贴几块砖</string>
+    <string name="tpl_short_paint">这面墙要几桶漆</string>
+    <string name="tpl_short_fit">这格能放几箱</string>
+    <string name="tpl_short_rug">这块地要多大地毯</string>
+    <string name="tpl_short_free">自己算</string>
+    <string name="tpl_short_custom">我存的模板</string>
     <string name="tpl_custom">我存的模板</string>
     <string name="tip_tank">量内壁，水深量到你打算加到的那条线</string>
     <string name="tip_tile">改砖的尺寸，墙上的砖当场重铺</string>

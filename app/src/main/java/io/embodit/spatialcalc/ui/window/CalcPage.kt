@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -136,16 +137,24 @@ private fun PickJob(state: CalcState, settings: Settings, graph: Graph) {
     }
 }
 
-/** K6: a saved template on the job page (name up to two lines, 64 dp tall). */
+/**
+ * K6: a saved template on the job page. v0.1.5 (q5-1): a name that ends with its date stamp shows the stamp on its
+ * own line, so two templates of the same job are told apart at a glance; the tile grows instead of cutting text.
+ */
 @Composable
 private fun CustomTile(name: String, tag: String, modifier: Modifier, onClick: () -> Unit) {
+    val (base, stamp) = io.embodit.spatialcalc.domain.calc.DefaultName.split(name)
     Row(
-        modifier.height(64.dp).clip(RoundedCornerShape(18.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        modifier.heightIn(min = 64.dp).clip(RoundedCornerShape(18.dp)).background(PicoTheme.colorScheme.fillSecondary).clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(painter = painterResource(R.drawable.tpl_custom), contentDescription = null, modifier = Modifier.size(40.dp, 30.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
         Spacer(Modifier.width(8.dp))
-        Txt(name, tag, style = PicoTheme.typography.labelMedium, maxLines = 2, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            if (base.isNotEmpty()) Txt(base, tag, style = PicoTheme.typography.labelMedium, maxLines = 4)
+            if (stamp != null) Txt(stamp, "$tag/date", style = PicoTheme.typography.labelMedium, color = PicoTheme.colorScheme.labelSecondary)
+        }
     }
 }
 
@@ -489,7 +498,7 @@ private fun ActionRow(state: CalcState, graph: Graph) {
 
 @Composable
 private fun NameRow(state: CalcState, graph: Graph) {
-    val default = templateName(state.template, state.customName) + " " + fmtDate(System.currentTimeMillis())
+    val default = defaultTemplateName(state.template, state.round, state.customName, System.currentTimeMillis())
     NameEditor(default, "saved", onCancel = { graph.flow.cancelNaming() }, onOk = { graph.flow.saveAsTemplate(it) })
 }
 

@@ -129,3 +129,11 @@ S23 clear ask · S24 anchorFail · S25 seven errors · S26 fit box.
   falls back to the plain slide only if none is free. K13 a record card's ⋯ → 存成模板 opens the same naming row (`NameEditor`)
   with [取消] [好]. K14 the name field's accessibility name is the hint text. K12 saved template names stay as typed (user data,
   not translated).
+
+## v0.1.5 (QA round 5)
+
+- q5-1 default template name = short job name + `MM-dd HH:mm` (`domain/calc/DefaultName`, <= 24 chars = the name field limit,
+  base <= 12, the date always kept, an old stamp is dropped when saving a template from a template). Short names
+  `tpl_short_*`: en Tank / Round tank / Tiles / Paint / Boxes / Rug / Formula; zh = the job names (round tank 圆缸多少升).
+  Job page template tile: a name ending in a stamp shows the date on its own line; the tile grows (>= 64 dp), never cuts.
+  `DefaultNameTest`. Debug: `template-save default` (the naming row's default), `naming on/off`, `custom i` (pick template i).

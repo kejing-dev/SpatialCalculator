@@ -10,6 +10,7 @@ import io.embodit.spatialcalc.domain.session.Page
 import io.embodit.spatialcalc.domain.session.Phase
 import io.embodit.spatialcalc.ui.stage.ActiveScene
 import io.embodit.spatialcalc.ui.stage.input.InputSource
+import io.embodit.spatialcalc.ui.theme.localized
 
 /**
  * Debug builds only (verification.debugHooks). Every command calls the same flow / scene entry the real input uses.
@@ -93,7 +94,14 @@ class DebugCommandReceiver : BroadcastReceiver() {
             "save" -> flow.saveCard()
             "pin" -> flow.pinHere()
             "justsave" -> flow.closeSaved()
-            "template-save" -> flow.saveAsTemplate(a)
+            // v0.1.5: `template-save default` saves under the same default name the naming row offers (q5-1 scans)
+            "template-save" -> if (a == "default") {
+                val st = flow.s
+                val res = context.localized(flow.settings.value.language).resources
+                flow.saveAsTemplate(io.embodit.spatialcalc.domain.calc.DefaultName.of(st.customName ?: res.getString(io.embodit.spatialcalc.ui.window.shortNameRes(st.template, st.round)), System.currentTimeMillis()))
+            } else flow.saveAsTemplate(a)
+            "custom" -> flow.s.customs.getOrNull(a.toIntOrNull() ?: 0)?.let { flow.pickCustom(it.id) }
+            "naming" -> if (on) flow.startNaming() else flow.cancelNaming()
             "next" -> flow.next()
             "clear" -> flow.clearAsk()
             "confirm" -> flow.confirmYes()
