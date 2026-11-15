@@ -15,9 +15,9 @@ data class HeadPose(val position: Vec3, val rotation: Quat4) {
 }
 
 /**
- * HMD pose (HMDTrackingProvider, 空间尺 HeadTracker). Uses (headpose-audit.md): placing the window open request
- * (level gate), the system pointer's line of sight origin (a tap point is all the app gets), the result plate's yaw
- * (D10), head clearance / sight cone of automatic drops (D14 / D20), and headSample buttons (D29). Never to aim, place
+ * HMD pose (HMDTrackingProvider). Uses (ui-audit.md「头位姿用途」): the level gate before a window open, the window
+ * estimate (position + level yaw only) the length line starts beside, the plates turning their yaw to the user, the
+ * sight-cone fade (D20) and where the value plate rides on a long line. Never to aim, place
  * or select (D1). A pose at the origin with the identity rotation is the tracker's "not yet" and counts as invalid.
  */
 class HeadTracker {

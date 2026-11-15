@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deep graphite #23272E -> #2E343C (design appIcon colors). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="270" android:startColor="#FF2E343C" android:endColor="#FF23272E" />
+</shape>

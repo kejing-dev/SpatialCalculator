@@ -1,24 +1,21 @@
 package io.embodit.spatialcalc.ui.stage
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,9 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pico.spatial.ui.design.Button
 import com.pico.spatial.ui.design.ButtonDefaults
@@ -41,14 +35,12 @@ import com.pico.spatial.ui.design.PicoTheme
 import com.pico.spatial.ui.foundation.content.SpatialView
 import com.pico.spatial.ui.foundation.dsl.registerSystem
 import com.pico.spatial.ui.foundation.dsl.unregisterSystem
-import com.pico.spatial.ui.geometry.Offset3D
+import com.pico.spatial.ui.platform.LengthUnit
+import com.pico.spatial.ui.platform.LocalPhysicalLengthConverter
 import com.pico.spatial.ui.platform.containers.LocalSpatialNavigator
 import io.embodit.spatialcalc.R
-import io.embodit.spatialcalc.domain.calc.Evaluate
 import io.embodit.spatialcalc.domain.calc.Fmt
-import io.embodit.spatialcalc.domain.calc.LenUnit
-import io.embodit.spatialcalc.domain.session.CalcState
-import io.embodit.spatialcalc.domain.session.Settings
+import io.embodit.spatialcalc.domain.calc.Ruler
 import io.embodit.spatialcalc.domain.math.Vec3
 import io.embodit.spatialcalc.platform.AppLog
 import io.embodit.spatialcalc.platform.Graph
@@ -60,19 +52,18 @@ import io.embodit.spatialcalc.ui.stage.input.TargetResolver
 import io.embodit.spatialcalc.ui.stage.input.boardInput
 import io.embodit.spatialcalc.ui.theme.CalcColors
 import io.embodit.spatialcalc.ui.theme.localized
-import io.embodit.spatialcalc.ui.window.resultText
-import io.embodit.spatialcalc.ui.window.templateName
+import kotlinx.coroutines.launch
 
-/** The Mixed Stage: one full-size SpatialView with the room content and the plates (attachment panels). */
+/** The Mixed Stage: one full-size SpatialView holding the length line and its plates. */
 @Composable
 fun StageScreen() {
     val context = LocalContext.current
     val graph = remember(context) { Graph.from(context) }
     val navigator = LocalSpatialNavigator.current
-    val state by graph.flow.state.collectAsStateWithLifecycle()
-    val settings by graph.flow.settings.collectAsStateWithLifecycle()
     val scene = remember(graph) { StageScene(graph) }
     val stageScope = androidx.compose.runtime.rememberCoroutineScope()
+    val converter = LocalPhysicalLengthConverter.current
+    scene.mPerDp = with(converter) { converter.dpToLength(1.dp, LengthUnit.Meters) }
 
     DisposableEffect(scene) {
         registerSystem<CalcFrameSystem>()
@@ -82,7 +73,7 @@ fun StageScreen() {
         )
         graph.window.closeStage = { stageScope.launch { runCatching { navigator.closeStage() } } }
         graph.window.request("start")
-        AppLog.i("STAGE enter")
+        AppLog.i("STAGE enter mPerDp=${scene.mPerDp}")
         onDispose {
             unregisterSystem<CalcFrameSystem>()
             graph.window.detach()
@@ -91,32 +82,16 @@ fun StageScreen() {
         }
     }
 
-    // background: stop sensing work, keep the card; foreground: back where it was (container.lifecycle)
-    val owner = LocalLifecycleOwner.current
-    DisposableEffect(owner) {
-        val obs = LifecycleEventObserver { _, e ->
-            when (e) {
-                Lifecycle.Event.ON_STOP -> AppLog.i("LIFECYCLE background")
-                Lifecycle.Event.ON_START -> AppLog.i("LIFECYCLE foreground")
-                else -> Unit
-            }
-        }
-        owner.lifecycle.addObserver(obs)
-        onDispose { owner.lifecycle.removeObserver(obs) }
-    }
-
-    LaunchedEffect(state, settings, scene.ready.value) { scene.render(state, settings) }
-
     SpatialView(
         modifier = Modifier.fillMaxSize().boardInput(
-            TargetResolver.byName(Names::resolve),
+            TargetResolver.byName(Targets::resolve),
             object : BoardInputListener<Hit> {
-                override fun onTap(target: Hit?, source: InputSource, position: Offset3D?) = scene.onTap(target, source, position)
-                override fun onDragStart(target: Hit, source: InputSource): Boolean = scene.onDragStart(target)
+                override fun onTap(target: Hit?, source: InputSource, position: com.pico.spatial.ui.geometry.Offset3D?) = scene.onTap(target, source)
+                override fun onDragStart(target: Hit, source: InputSource): Boolean = scene.onDragStart(target, source)
                 override fun onDragMove(totalM: Offset3M) = scene.onDragMove(Vec3(totalM.x, totalM.y, totalM.z))
                 override fun onDragEnd() = scene.onDragEnd()
                 override fun onDragCancel() = scene.onDragEnd()
-                override fun onHover(target: Hit?, source: InputSource) = Unit // the system HoverEffect on bodies / handles is the feedback
+                override fun onHover(target: Hit?, source: InputSource) = Unit // the system HoverEffect on the line is the feedback
             },
         ),
         attachments = {
@@ -127,101 +102,73 @@ fun StageScreen() {
     )
 }
 
-/** Each plate is its own composition: it reads state + language itself (a language switch reaches it). */
+/** Each plate is its own composition and reads state + language itself (a language switch reaches it). */
 @Composable
 private fun PlateRoot(id: String, scene: StageScene, graph: Graph) {
     val base = LocalContext.current
-    val st by graph.flow.state.collectAsStateWithLifecycle()
-    val s by graph.flow.settings.collectAsStateWithLifecycle()
+    val st by graph.app.state.collectAsStateWithLifecycle()
+    val s by graph.app.settings.collectAsStateWithLifecycle()
     val shown = scene.panelShown[id] == true
     key(s.language) {
         CompositionLocalProvider(LocalContext provides base.localized(s.language)) {
             PicoTheme {
                 if (!shown) Box(Modifier.size(8.dp)) else when {
                     id == PanelIds.HUD -> Hud(graph, scene)
-                    id == PanelIds.READING -> ReadingPlate(st, s)
-                    id == PanelIds.RESULT -> ResultPlateUi(st, s, null)
-                    id == PanelIds.DEMO -> SmallPlate(stringResource(R.string.demo_label), 220)
-                    id.startsWith("fit") -> FitReading(st, s, id.removePrefix("fit").toInt())
-                    id.startsWith("pin") -> ResultPlateUi(st, s, scene.pinPlates[id.removePrefix("pin").toInt()])
+                    id == PanelIds.PLATE -> ValuePlate(st.line.lengthM, st.line.unit)
+                    id.startsWith("tick") -> TickLabel(scene.tickLabels[id.removePrefix("tick").toInt()])
                 }
             }
         }
     }
 }
 
-private val PlateShape = RoundedCornerShape(16.dp)
-
 @Composable
-private fun PlateText(text: String, size: Int, color: Color = Color.White, weight: FontWeight = FontWeight.SemiBold, tag: String) {
-    androidx.compose.foundation.text.BasicText(
-        text, style = TextStyle(fontSize = size.sp, color = color, fontWeight = weight, textAlign = TextAlign.Center), maxLines = 2,
+private fun PlateText(text: String, size: Int, tag: String, color: Color = Color.White, weight: FontWeight = FontWeight.Medium) {
+    BasicText(
+        text, style = TextStyle(fontSize = size.sp, color = color, fontWeight = weight, textAlign = TextAlign.Center), maxLines = 1,
         onTextLayout = { if (it.hasVisualOverflow) AppLog.w("OVERFLOW plate/$tag \"$text\"") },
     )
 }
 
+/** The number over the line on a plateInk capsule (yaw-only toward the user). Same source as the result line (D38). */
 @Composable
-private fun SmallPlate(text: String, width: Int) {
-    Box(Modifier.size(width.dp, 56.dp).clip(PlateShape).background(CalcColors.PlateInk), contentAlignment = Alignment.Center) {
-        PlateText(text, 18, tag = "small")
-    }
-}
-
-/** 读数牌 (空间尺): "0.620 m ± 4 mm" on plateInk. */
-@Composable
-private fun ReadingPlate(st: CalcState, s: Settings) {
-    val t = st.tapes.lastOrNull { it.lengthM > 0 } ?: return
-    val u = if (s.imperial) LenUnit.IN else if (t.lengthM >= 1.0) LenUnit.M else LenUnit.CM
-    SmallPlate(Fmt.length(t.lengthM, t.tolM, u), 240)
-}
-
-/** 结果牌 304 × 96: the big number (same source as the result line, D38) + template name, result-blue bar on the left. */
-@Composable
-private fun ResultPlateUi(st: CalcState, s: Settings, cardId: Long?) {
-    val card = cardId?.let { id -> st.cards.firstOrNull { it.id == id } }
-    val result = if (card != null) (if (card.tokens.isNotEmpty()) Evaluate.free(card.tokens) else Evaluate.template(card.template, card.round, card.slots)) else st.result
-    val template = card?.template ?: st.template
-    val text = resultText(result, template, card?.resultUnit ?: st.resultUnit, s.imperial) ?: return
-    val name = templateName(template, card?.customName ?: st.customName)
-    Row(Modifier.size(304.dp, 96.dp).clip(PlateShape).background(CalcColors.PlateInk), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(8.dp).fillMaxHeight().background(CalcColors.Tertiary))
-        Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.Center) {
-            PlateText(text, if (text.length > 18) 18 else 24, tag = "result")
-            PlateText((if (card?.pinned == true) "📍 " else "") + name, 13, color = Color(0xFFCFD6DD), weight = FontWeight.Normal, tag = "result-name")
-        }
+private fun ValuePlate(lengthM: Double, unit: io.embodit.spatialcalc.domain.calc.LenUnit) {
+    val value = Fmt.length(lengthM, unit)
+    Column(
+        Modifier.clip(RoundedCornerShape(40.dp)).background(CalcColors.PlateInk).padding(horizontal = 24.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        PlateText(value, StageScene.PLATE_SP.toInt(), "value")
+        if (lengthM > Ruler.MAX_M) PlateText(stringResource(R.string.line_clipped, value), 20, "clipped", color = Color(0xFFE6EBEF), weight = FontWeight.Normal)
     }
 }
 
 @Composable
-private fun FitReading(st: CalcState, s: Settings, i: Int) {
-    val fb = st.fitBox ?: return
-    val m = when (i) { 0 -> fb.size.x; 1 -> fb.size.y; else -> fb.size.z }
-    val u = if (s.imperial) LenUnit.IN else LenUnit.CM
-    SmallPlate(Fmt.length(m.toDouble(), 0.0, u), 160)
+private fun TickLabel(text: String) {
+    Box(Modifier.clip(RoundedCornerShape(12.dp)).background(CalcColors.PlateInk).padding(horizontal = 8.dp, vertical = 2.dp)) {
+        PlateText(text, StageScene.TICK_SP.toInt(), "tick")
+    }
 }
 
-/** Stage HUD in the line of sight: S00「准备中」, the level gate「平视前方」, headSample「看正前方」, or [打开面板] after ×. */
+/** Stage HUD in the line of sight: loading, the level gate「平视前方」, or [打开计算器] after × closed the window. */
 @Composable
 private fun Hud(graph: Graph, scene: StageScene) {
     val window = graph.window
-    val st by graph.flow.state.collectAsStateWithLifecycle()
     if (window.exiting) return
-    Box(Modifier.size(360.dp, 110.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF2FBF8F2)), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(360.dp, 110.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF2F4F6F8)), contentAlignment = Alignment.Center) {
         when {
             !scene.ready.value -> Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(28.dp))
                 Box(Modifier.width(12.dp))
-                PlateText(stringResource(R.string.loading), 20, color = CalcColors.Ink, tag = "hud-loading")
+                PlateText(stringResource(R.string.loading), 20, "hud-loading", color = CalcColors.Ink)
             }
-            st.headSampling -> PlateText(stringResource(R.string.hint_look_ahead), 20, color = CalcColors.Ink, tag = "hud-sample")
-            window.levelHint -> PlateText(stringResource(R.string.level_hint), 20, color = CalcColors.Ink, tag = "hud-level")
-            // q1-10: the default Button is ~40 dp tall, too short for a 20 sp line (OVERFLOW in English): 64 dp, 18 sp
+            window.levelHint -> PlateText(stringResource(R.string.level_hint), 20, "hud-level", color = CalcColors.Ink)
             else -> Button(
-                onClick = { window.request("chip") }, size = ButtonDefaults.Regular.copy(height = 64.dp, minWidth = 240.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PicoTheme.colorScheme.interaction, contentColor = PicoTheme.colorScheme.labelPrimaryLight),
+                onClick = { window.request("hud") }, size = ButtonDefaults.Regular.copy(height = 64.dp, minWidth = 240.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CalcColors.Accent, contentColor = CalcColors.OnAccent),
             ) {
-                // design-style: inherited-content-color Button (same colours as the window's primary button)
-                PlateText(stringResource(R.string.open_panel), 18, color = PicoTheme.colorScheme.labelPrimaryLight, tag = "hud-open")
+                // design-style: inherited-content-color Button
+                PlateText(stringResource(R.string.open_window), 18, "hud-open", color = CalcColors.OnAccent)
             }
         }
     }

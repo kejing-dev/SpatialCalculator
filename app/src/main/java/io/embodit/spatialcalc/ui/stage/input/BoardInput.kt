@@ -1,7 +1,7 @@
 package io.embodit.spatialcalc.ui.stage.input
 
 // Factory template taste/templates/board-input (D50): 3D pick / drag for board & tabletop apps in a
-// Shared Space volume (spatial-calc: used in the Mixed Stage SpatialView). Copy this file, change the package, implement TargetResolver + BoardInputListener.
+// Shared Space volume (spatial-calc: the length line in the Mixed Stage). Copy this file, change the package, implement TargetResolver + BoardInputListener.
 
 import android.os.SystemClock
 import android.util.Log
@@ -79,6 +79,12 @@ interface BoardInputListener<T : Any> {
     fun onDragStart(target: T, source: InputSource): Boolean = false
 
     /** Total movement since the press, metres, volume axes (+X right, +Y up, +Z toward the user). */
+    /**
+     * Total movement since the press, metres, view axes: the SUM of every event's `dragAmount`. SDK 6.1.9
+     * `detectSpatialDragGesture` reports `dragAmount = position3d - previousPosition3d` (one event's delta), not the
+     * travel since the press; reading it as a total pinned the dragged thing to its start (render-lab v0.1.2 headset
+     * input-log, 2026-11-14). [DragTotal] adds them up.
+     */
     fun onDragMove(totalM: Offset3M) {}
 
     fun onDragEnd() {}
@@ -131,6 +137,19 @@ object BoardInputLog {
 }
 
 /** Shared between the tap and drag detectors so one press is never handled twice. */
+/**
+ * Sums the per-event `dragAmount` of one press into the travel since the press (SDK 6.1.9 sends deltas).
+ * Unit test it with the headset pattern: 60 events x 2 mm must total 12 cm.
+ */
+class DragTotal {
+    var x = 0f; private set
+    var y = 0f; private set
+    var z = 0f; private set
+    var events = 0; private set
+    fun reset() { x = 0f; y = 0f; z = 0f; events = 0 }
+    fun add(step: Offset3M): Offset3M { x += step.x; y += step.y; z += step.z; events++; return Offset3M(x, y, z) }
+}
+
 private class TapGuard { @Volatile var lastTapMs = 0L }
 
 /** Last hovered target, so hover changes are logged once. */
@@ -221,20 +240,19 @@ fun <T : Any> Modifier.boardInput(
         // 3. drags: real drags past dragStartM, short ones become taps
         .pointerInput(Unit) {
             var startHit: T? = null
-            var startPos: Offset3D? = null
             var startPath = ""
             var startSrc = InputSource.UNKNOWN
             var startMs = 0L
             var maxTravel = 0f
             var dragging = false
+            val total = DragTotal()
             detectSpatialDragGesture(
                 context = context,
                 targetedToEntity = TargetEntity.any(),
-                onDragStart = { start, v ->
+                onDragStart = { _, v ->
+                    total.reset()
                     val (hit, path) = resolveUp(v.targetEntity, currentResolver, config.maxResolveDepth)
-                    // spatial-calc: keep the press point, so a press the system classified as a tiny drag still has a
-                    // position (a tap on the backstop needs it to rebuild the pointing line)
-                    startHit = hit; startPos = start; startPath = path; startSrc = InputSource.of(v.interactionKind)
+                    startHit = hit; startPath = path; startSrc = InputSource.of(v.interactionKind)
                     startMs = SystemClock.uptimeMillis(); maxTravel = 0f; dragging = false
                     log("DRAG press src=${startSrc.label} hit=$hit path=$path")
                 },
@@ -247,7 +265,7 @@ fun <T : Any> Modifier.boardInput(
                         log("DRAG->TAP skipped: the system already sent a tap for this press")
                     } else {
                         log("DRAG->TAP src=${startSrc.label} hit=$startHit path=$startPath travel=${"%.3f".format(maxTravel)}m ${ms}ms")
-                        currentListener.onTap(startHit, startSrc, startPos)
+                        currentListener.onTap(startHit, startSrc, null)
                     }
                     dragging = false
                 },
@@ -257,7 +275,8 @@ fun <T : Any> Modifier.boardInput(
                     dragging = false
                 },
             ) { v ->
-                val d = toMeters(v.dragAmount)
+                // dragAmount is this event's delta (SDK 6.1.9): add it up
+                val d = total.add(toMeters(v.dragAmount))
                 if (d.length > maxTravel) maxTravel = d.length
                 val hit = startHit
                 if (!dragging && hit != null && d.length > config.dragStartM) {
