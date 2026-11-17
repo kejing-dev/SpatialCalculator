@@ -70,7 +70,7 @@ import java.math.BigDecimal
 import kotlin.system.exitProcess
 
 /**
- * The one system window (design windowModel single_system_window, 400 × 664 dp). No TabBar (one main page, B31):
+ * The one system window (design windowModel single_system_window, 400 × 716 dp). No TabBar (one main page, B31):
  * pages change in place — calculator (cold start), history, settings, how to use — and every page has ← back.
  * Dragging and closing are the system window controls (D21).
  */
@@ -85,7 +85,7 @@ fun MainWindowUi() {
     LaunchedEffect(converter) {
         val m = with(converter) { converter.dpToLength(1.dp, LengthUnit.Meters) }
         graph.window.mPerDp = m
-        AppLog.i("WINDOW mPerDp=$m size=${"%.3f".format(400 * m)} x ${"%.3f".format(664 * m)} m")
+        AppLog.i("WINDOW mPerDp=$m size=${"%.3f".format(400 * m)} x ${"%.3f".format(716 * m)} m")
     }
     DisposableEffect(owner) {
         val obs = LifecycleEventObserver { _, e -> graph.window.onPanelLifecycle(e.name) }
@@ -122,7 +122,9 @@ private fun CalcPage(st: AppState, settings: Settings, app: AppController) {
         }
         Display(st, app)
         Spacer(Modifier.height(4.dp))
-        UnitRow(st.unit) { app.unit(it) }
+        UnitRow(LenUnit.ROW, st.unit) { app.unit(it) }
+        Spacer(Modifier.height(4.dp))
+        UnitRow(LenUnit.VOL_ROW, st.unit) { app.unit(it) }
         Spacer(Modifier.height(16.dp))
         Keypad { app.press(it) }
     }
@@ -133,7 +135,7 @@ private fun CalcPage(st: AppState, settings: Settings, app: AppController) {
 private fun ColumnScope.Display(st: AppState, app: AppController) {
     val calc = st.calc
     val expr = when {
-        calc.evaluated -> calc.exprText + " =" + (st.origin?.takeIf { it.second != st.unit && st.unit.isLength }?.let { " " + Fmt.number(it.first) + " " + it.second.symbol } ?: "")
+        calc.evaluated -> calc.exprText + " =" + (st.origin?.takeIf { it.second != st.unit && st.unit.hasUnit }?.let { " " + Fmt.number(it.first) + " " + it.second.symbol } ?: "")
         calc.error != null -> calc.exprText + " ="
         else -> Fmt.tokens(calc.tokens)
     }
@@ -148,17 +150,23 @@ private fun ColumnScope.Display(st: AppState, app: AppController) {
     }
     Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.CenterVertically) {
         if (st.rulerShown) {
-            IconKey(
-                R.drawable.ic_straighten, stringResource(if (st.line.on) R.string.ruler_hide else R.string.ruler_show), "calc/ruler",
-                { app.ruler() }, on = st.line.on, dim = !st.rulerEnabled,
-            )
-            Spacer(Modifier.width(8.dp))
+            // [摆出来] (was 📏): one key; a ruler icon for a length, a cube for a volume, with its name under it (B19)
+            Column(Modifier.width(56.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                IconKey(
+                    if (st.rulerBox) R.drawable.ic_cube else R.drawable.ic_straighten,
+                    stringResource(if (st.line.on) R.string.ruler_hide else R.string.ruler_show), "calc/ruler",
+                    { app.ruler() }, on = st.line.on, dim = !st.rulerEnabled,
+                )
+                Txt(stringResource(if (st.line.on) R.string.ruler_caption_off else R.string.ruler_caption), "calc/ruler-caption", size = sp(11f), lineHeight = 1.0f,
+                    color = CalcColors.InkSecondary, align = TextAlign.Center)
+            }
+            Spacer(Modifier.width(4.dp))
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { ResultText(st) }
     }
     Box(Modifier.fillMaxWidth().height(20.dp), contentAlignment = Alignment.CenterEnd) {
         val note = when (st.lineProblem) {
-            LineProblem.NEGATIVE -> stringResource(R.string.line_negative)
+            LineProblem.NEGATIVE -> stringResource(if (st.unit.isVolume || st.rulerBox) R.string.line_negative_volume else R.string.line_negative)
             LineProblem.TOO_SHORT -> stringResource(R.string.line_too_short)
             null -> null
         }
@@ -175,7 +183,7 @@ private fun ResultText(st: AppState) {
         Txt(stringResource(if (calc.error == CalcError.DIV_ZERO) R.string.div_zero else R.string.too_big), "calc/error", size = sp(32f), color = CalcColors.ErrorText, align = TextAlign.End)
         return
     }
-    val suffix = if (st.unit.isLength) " " + st.unit.symbol else ""
+    val suffix = if (st.unit.hasUnit) " " + st.unit.symbol else ""
     val single = calc.tokens.size == 1 && !calc.evaluated
     val (text, size) = when {
         calc.evaluated && calc.result != null -> fitResult(calc.result, suffix)
@@ -204,12 +212,15 @@ internal fun fitResult(v: BigDecimal, suffix: String): Pair<String, Float> {
 
 private fun fitTyped(s: String): Pair<String, Float> = s to when { s.length <= 10 -> 52f; s.length <= 13 -> 40f; else -> 32f }
 
-/** — mm cm m in ft: a text segment row, the chosen one bold with a 4 dp mist-teal dot under it (no frame). */
+/**
+ * — mm cm m in ft (row 1) and mL L cm³ m³ ft³ gal (row 2, v0.3.0): text segment rows, the chosen one bold with a 4 dp
+ * mist-teal dot under it (no frame). One unit at a time across both rows.
+ */
 @Composable
-private fun UnitRow(unit: LenUnit, onPick: (LenUnit) -> Unit) {
+private fun UnitRow(row: List<LenUnit>, unit: LenUnit, onPick: (LenUnit) -> Unit) {
     val none = stringResource(R.string.unit_none)
     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        LenUnit.ROW.forEach { u ->
+        row.forEach { u ->
             val sel = u == unit
             Button(
                 onClick = { AppLog.i("UI tap unit/${u.name}"); onPick(u) },
@@ -287,7 +298,7 @@ private fun HistoryPage(st: AppState, app: AppController) {
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                             // design-style: inherited-content-color Button
                             Txt(h.expr + " =", "history/expr", size = sp(14f), color = CalcColors.InkSecondary, align = TextAlign.End)
-                            Txt(Fmt.number(h.value) + (if (h.unit.isLength) " " + h.unit.symbol else ""), "history/result", size = sp(24f), color = CalcColors.Ink, align = TextAlign.End)
+                            Txt(Fmt.number(h.value) + (if (h.unit.hasUnit) " " + h.unit.symbol else ""), "history/result", size = sp(24f), color = CalcColors.Ink, align = TextAlign.End)
                         }
                     }
                 }
@@ -361,17 +372,19 @@ private fun HowToPage(app: AppController) {
     val rows = listOf(
         Triple(R.drawable.ic_pan_tool_alt, R.string.how_to_tap_1, R.string.how_to_tap_2),
         Triple(R.drawable.ic_straighten, R.string.how_to_ruler_1, R.string.how_to_ruler_2),
+        Triple(R.drawable.ic_cube, R.string.how_to_volume_1, R.string.how_to_volume_2),
         Triple(R.drawable.ic_open_with, R.string.how_to_drag_1, R.string.how_to_drag_2),
         Triple(R.drawable.ic_rotate_right, R.string.how_to_turn_1, R.string.how_to_turn_2),
-        Triple(R.drawable.ic_visibility_off, R.string.how_to_hide_1, R.string.how_to_hide_2),
+        Triple(R.drawable.ic_restart_alt, R.string.how_to_box_1, R.string.how_to_box_2),
+        Triple(R.drawable.ic_pan_tool_alt, R.string.how_to_twist_1, R.string.how_to_twist_2),
         Triple(R.drawable.ic_history, R.string.how_to_history_1, R.string.how_to_history_2),
     )
     Column(Modifier.fillMaxSize()) {
         Header(stringResource(R.string.how_to), "howto") { app.page(Page.SETTINGS) }
         Spacer(Modifier.height(16.dp))
-        Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
+        Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
             rows.forEachIndexed { i, (icon, a, b) ->
-                Row(Modifier.fillMaxWidth().height(80.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().height(68.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(48.dp).clip(CircleShape).background(CalcColors.KeyFill), contentAlignment = Alignment.Center) {
                         Icon(painter = painterResource(icon), contentDescription = null, tint = CalcColors.Ink, modifier = Modifier.size(24.dp))
                     }

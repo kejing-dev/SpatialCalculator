@@ -30,9 +30,9 @@ object LinePlace {
     /** Window centre below the eye at the system's default open (emulator 2026-11-14: the window centre is at eye level). */
     const val WINDOW_DROP_M = 0.0f
     const val WIDTH_DP = 400f
-    const val HEIGHT_DP = 664f
-    /** Result row centre above the window centre: 664/2 − (24 + 48 + 32 + 8 + 32) = 188 dp. */
-    const val RESULT_ROW_DP = 188f
+    const val HEIGHT_DP = 716f
+    /** Result row centre above the window centre: 716/2 − (24 + 48 + 32 + 8 + 32) = 214 dp (v0.3.0: + the volume unit row). */
+    const val RESULT_ROW_DP = 214f
     /** The system controls under a window (dot, ×, handle): ≈ 60 dp (native-window-move.md §2). */
     const val SYSTEM_BAR_DP = 60f
     const val GAP_M = 0.08f

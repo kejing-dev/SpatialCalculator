@@ -26,8 +26,9 @@ class LinePlaceTest {
             // D54: the window follows the eye height it was opened at; the line is within a comfortable view
             assertEquals(eyeY - LinePlace.WINDOW_DROP_M, w.center.y, 1e-4f)
             val down = LinePlace.downDeg(eye, start)
-            // level with the result row near the top of an eye-level window: ≤ 11° up, never behind or under it
-            assertTrue("down $down", down in -11f..35f)
+            // level with the result row near the top of an eye-level window: ≤ 12° up (v0.3.0: the window grew 52 dp for
+            // the volume unit row, so the result row is 26 dp higher), never behind or under it
+            assertTrue("down $down", down in -12f..35f)
             assertTrue(eye.distanceTo(start) >= 0.6f) // D14 clearance
         }
     }

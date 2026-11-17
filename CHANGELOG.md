@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.0 (2026-11-16)
+User 2026-11-16 on v0.2.0: volumes too, and the generated line / volume should drag and turn (line two axes, volume three).
+- Volume unit row (mL L cm³ m³ ft³ gal) under the length row; results convert within a dimension. Window 400 × 716 dp.
+- 📏 is now [摆出来 / Place it] (one key): a length → the 1:1 line; a volume → a 1:1 glass cube (edge = ∛volume, 1 L =
+  10 cm) with edge lines and a label facing you; a × b × c typed in a length → that box (label "30 × 20 × 10 cm = 6 L").
+- Drag the line or the box (hand pinch, controller ray, eye-hand; per-event deltas summed, DragTotal).
+- Turn: a small panel beside the gauge with [−15°] [+15°] per axis and [Face me]; grip + stick (left / right = Y,
+  up / down = X / the line's tilt, trigger + left / right = Z); two-hand twist (detectSpatialRotateGesture) snapping to
+  0 / 45 / 90°. The line turns about its vertical axis and tilts lay → slant → stand.
+- How-to page: rows for volume, drag, turning the line, turning the box, two-hand twist.
+- Fix q8-1: the settings volume slider changes stop on a tap and on a drag (StopSlider + rememberUpdatedState; the
+  SpatialUI Slider keeps its first onValueChange).
+
 ## v0.2.0 (2026-11-15)
 Rebuilt as a minimal spatial desktop calculator (design package v2.0, gate B: skin A, history kept, line drag / turn /
 stand, name 空间计算器).

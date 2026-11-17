@@ -16,10 +16,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +45,7 @@ import com.pico.spatial.ui.design.Slider
 import com.pico.spatial.ui.design.Text
 import com.pico.spatial.ui.foundation.layout.zOffset
 import io.embodit.spatialcalc.R
+import io.embodit.spatialcalc.domain.app.StopSlider
 import io.embodit.spatialcalc.domain.calc.Key
 import io.embodit.spatialcalc.platform.SoundPlayer
 import io.embodit.spatialcalc.platform.TAG
@@ -172,18 +174,23 @@ internal fun <T> Segments(options: List<Pair<T, String>>, selected: T, tag: Stri
 }
 
 /**
- * Volume: three stops 0 / 50 / 100 % (B20). The slider is bound to a local Float so a tap on the track and a small
- * drag both move it; the level follows the nearest stop at once and the thumb snaps there on release.
+ * Volume: three stops 0 / 50 / 100 % (B20). A tap on the track and a small drag both move it; the level follows the
+ * nearest stop at once and the thumb snaps there on release. q8-1 (SpatialUI Slider keeps its first onValueChange,
+ * spatial-ui-skills #41): the callback only touches remembered objects — [StopSlider], the thumb state, and the latest
+ * onChange through rememberUpdatedState — never the composition-time level.
  */
 @Composable
 internal fun VolumeSlider(level: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
     val label = stringResource(R.string.volume)
-    var pos by remember(level) { mutableFloatStateOf(level.toFloat()) }
+    val model = remember { StopSlider(level) }
+    val save by rememberUpdatedState(onChange)
+    val thumb = remember { mutableFloatStateOf(level.toFloat()) }
+    LaunchedEffect(level) { model.sync(level); thumb.floatValue = model.pos }
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Slider(
-            value = pos,
-            onValueChange = { v -> pos = v; val stop = Math.round(v).coerceIn(0, 2); if (stop != level) onChange(stop) },
-            onValueChangeFinished = { pos = Math.round(pos).coerceIn(0, 2).toFloat() },
+            value = thumb.floatValue,
+            onValueChange = { v -> model.change(v)?.let { save(it) }; thumb.floatValue = model.pos },
+            onValueChangeFinished = { thumb.floatValue = model.finish(); Log.i(TAG, "UI volume release level=${model.level}") },
             modifier = Modifier.weight(1f).height(48.dp).semantics { contentDescription = label },
             valueRange = 0f..2f,
         )

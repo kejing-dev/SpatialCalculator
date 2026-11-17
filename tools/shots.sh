@@ -27,6 +27,19 @@ c ruler stand; sleep 1; shot S05a-standing
 c ruler off; c type "c23.5="; c ruler on; sleep 1.5; shot S05b-clipped
 c ruler off; c unit mm; c type "c0.4="; c ruler on; shot S05-too-short
 c type "c"; c unit m; c type "2~="; c ruler on; shot S05-negative
+c ruler off; c unit cm; c type "c80="; c ruler on; c turn "z 3"; sleep 1; shot S05a-slanted
+c ruler off
+# v0.3.0 volumes: a volume unit → a 1:1 cube; a × b × c in a length → that box; turn panel, stick, twist, reset
+c unit l; c type "c1.5="; shot S03-volume
+c ruler on; sleep 1.5; shot S10-cube
+c dump
+c turn "x 2"; c turn "y 2"; c stick "right trigger"; sleep 1; shot S10a-turned
+c twist "y 40"; sleep 1; c dump; shot S10a-twist-snapped
+c turn reset; sleep 1; c dump; shot S10-reset
+c ruler "dragdeltas 60 0,0.002,0.001"; sleep 1; c dump; shot S10-dragged
+c ruler off; c unit cm; c type "c30*20*10="; c ruler on; sleep 1.5; shot S10-sides
+c ruler off; c unit m3; c type "c64="; c ruler on; sleep 1.5; shot S10b-clipped
+c ruler off; c unit ml; c type "c0.0001="; c ruler on; shot S10-too-small
 c unit none; c type "c"
 c clearHistory; c goto history; shot S06-empty
 c seedHistory 8; c goto history; shot S06

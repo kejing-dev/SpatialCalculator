@@ -137,9 +137,9 @@ class AppModelTest {
         val (a, _) = app()
         a.unit(LenUnit.CM); a.type("80="); a.ruler()
         a.lineTurn(1); a.lineTurn(1)
-        assertEquals(2, a.s.line.yawSteps)
+        assertEquals(30f, a.s.line.yaw, 0f)
         a.lineTurn(-1); a.lineTurn(-1)
-        assertEquals(0, a.s.line.yawSteps)    // back to facing the user exactly
+        assertEquals(0f, a.s.line.yaw, 0f)    // back to facing the user exactly
         assertEquals("S05", a.s.stateId)
         a.lineStand(true)
         assertTrue(a.s.line.standing)
@@ -147,7 +147,7 @@ class AppModelTest {
         // hide + show again = back to default (回正)
         a.ruler(); a.ruler()
         assertFalse(a.s.line.standing)
-        assertEquals(0, a.s.line.yawSteps)
+        assertEquals(0f, a.s.line.yaw, 0f)
         assertEquals(2, a.s.line.serial)
     }
 

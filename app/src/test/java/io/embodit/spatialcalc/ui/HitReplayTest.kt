@@ -16,7 +16,8 @@ class HitReplayTest {
         for (path in listOf(
             "line", "line:tube < line < line:holder < stageRoot", "line:tick < line:tickAt < line < line:holder",
             "line:capR < line < line:holder", "line:break0 < line:break < line", "line:plate < stageRoot",
-        )) assertEquals(path, Hit.Line, resolvePath(parseLoggedPath(path), Targets::resolve))
+            "box", "box:glass < box < box:holder < stageRoot", "box:edge < box < box:holder",
+        )) assertEquals(path, Hit.Gauge, resolvePath(parseLoggedPath(path), Targets::resolve))
         assertNull(resolvePath(parseLoggedPath("holder:hud < stageRoot"), Targets::resolve))
         assertNull(resolvePath(parseLoggedPath("<none>"), Targets::resolve))
     }

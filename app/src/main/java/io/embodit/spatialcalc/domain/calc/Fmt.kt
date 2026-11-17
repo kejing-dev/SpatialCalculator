@@ -45,4 +45,13 @@ object Fmt {
 
     /** A length for the plate / tick labels: up to 4 significant decimals, no trailing zeros. */
     fun length(meters: Double, unit: LenUnit): String = number(BigDecimal(meters / unit.factor).round(MathContext(6)), 6) + " " + unit.symbol
+
+    /** A volume in [unit] (m³ in): "1.5 L". */
+    fun volume(m3: Double, unit: LenUnit): String = number(BigDecimal(m3 / unit.factor).round(MathContext(6)), 6) + " " + unit.symbol
+
+    /** A volume in the handiest metric unit: < 1 L → mL, < 1 m³ → L, else m³. */
+    fun volumeAuto(m3: Double): String = volume(m3, when { m3 < 0.001 -> LenUnit.ML; m3 < 1.0 -> LenUnit.L; else -> LenUnit.M3 })
+
+    /** "30 × 20 × 10 cm" for a box typed as three sides. */
+    fun sides(sides: List<BigDecimal>, unit: LenUnit): String = sides.joinToString(" × ") { number(it, 6) } + " " + unit.symbol
 }
