@@ -59,7 +59,7 @@
     <string name="how_to_volume_1">See a volume: pick L, mL, m³… and tap Place it</string>
     <string name="how_to_volume_2">30 × 20 × 10 in cm places that box</string>
     <string name="how_to_box_1">Turn the box: ±15° per axis X, Y, Z beside it</string>
-    <string name="how_to_box_2">Grip + stick: sideways Y, up / down X, + trigger Z</string>
+    <string name="how_to_box_2">Grip + stick; hold the trigger too for Z</string>
     <string name="how_to_twist_1">Two hands: pinch it with both and twist</string>
     <string name="how_to_twist_2">Snaps to 0°, 45°, 90°. Face me resets it</string>
     <string name="ruler_caption_off">Put away</string>
