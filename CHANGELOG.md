@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.3 (2026-11-17)
+QA #11 on v0.3.2 (q11-1, user: grey them out).
+- Once there is a result with a unit, the unit keys lock to its dimension: a length lights only mm cm m in ft, a volume
+  only mL L cm³ m³ ft³ gal; the other row is greyed (still readable, ≈ 4.0:1) with a note on which row applies; [—] stays lit.
+- Switching within a row converts from the original value (no drift); converted results show ≤ 7 significant digits,
+  values under 1 keep plain decimals (0.0042378 ft³).
+- The grey preview of a × b × c in a length shows the volume.
+- Known: 1 mL → ft³ still shows 3.531e-5 (correct value); the box label has one decimal fewer than the window; to change
+  dimension after a result press C, a new number or [—] first.
+
 ## v0.3.2 (2026-11-17)
 QA #10 on v0.3.1.
 - q10-1: a × b × c typed in a length unit is a volume in the data itself (length³), not only on screen. 30 × 20 × 10 cm
