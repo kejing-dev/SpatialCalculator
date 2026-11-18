@@ -35,6 +35,7 @@ import io.embodit.spatialcalc.domain.math.Vec3
 import io.embodit.spatialcalc.domain.place.Axis
 import io.embodit.spatialcalc.domain.place.GaugeMath
 import io.embodit.spatialcalc.domain.place.LinePlace
+import io.embodit.spatialcalc.domain.place.PanelPlace
 import io.embodit.spatialcalc.domain.place.WindowPose
 import io.embodit.spatialcalc.platform.AppLog
 import io.embodit.spatialcalc.platform.Graph
@@ -477,7 +478,7 @@ class StageScene(private val graph: Graph) {
         serial = ls.serial
         isBox = true
         resetSeen = ls.resetSerial
-        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null
+        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null; ctlSpot = null; ctlAt = null
         boxDims = GaugeMath.drawnDims(ls.dimsM)
         shownLen = 0f; lenFrom = 0f; lenTo = 1f; lenStart = now; lenDur = 400L
         val holder = Entity().apply { setName("box:holder") }
@@ -505,7 +506,7 @@ class StageScene(private val graph: Graph) {
         serial = ser
         isBox = false
         resetSeen = app.s.line.resetSerial
-        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null
+        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null; ctlSpot = null; ctlAt = null
         shownLen = 0f; lenFrom = 0f; lenTo = 0f; lenStart = now
         val holder = Entity().apply { setName("line:holder") }
         root.addChild(holder)
@@ -590,7 +591,7 @@ class StageScene(private val graph: Graph) {
         val ps = textScale(PLATE_CAP_M, PLATE_SP)
         val toObj = Vec3(start.x - h.position.x, 0f, start.z - h.position.z).normalized()
         val viewRight = Vec3(-toObj.z, 0f, toObj.x)
-        val cs = CTL_M_PER_DP / mPerDp
+        val cs = PanelPlace.M_PER_DP / mPerDp
         if (isBox) {
             // label over the top of the box, facing the user (yaw only); the turn panel under it
             val grow = max(shownLen, 0.001f)
@@ -598,10 +599,7 @@ class StageScene(private val graph: Graph) {
             val want = start + Vec3.UP * (GaugeMath.worldHalfHeight(q, dims) + 0.03f + PLATE_HALF_H)
             plateAt = plateAt?.let { it + (want - it) * (1f - exp(-dt / 0.2f)) } ?: want
             show(PanelIds.PLATE, plateAt, LinePlace.yawFacing(plateAt!!, h.position), ps)
-            // turn panel under the box (to the right it left the view on the emulator, 2026-11-16)
-            val ctlH = CTL_BOX_H_DP * CTL_M_PER_DP
-            val c = start - Vec3.UP * (GaugeMath.worldHalfHeight(q, dims) + 0.04f + ctlH / 2f) + viewRight * 0.03f
-            show(PanelIds.CTL, c, LinePlace.yawFacing(c, h.position), cs)
+            placeCtl(h, 3, PanelPlace.boxBlobs(start, q, dims, plateAt), cs)
             for (i in 0 until PanelIds.TICK_SLOTS) show(PanelIds.tick(i), null)
             return
         }
@@ -613,10 +611,7 @@ class StageScene(private val graph: Graph) {
         val want = start + dir * mid + side
         plateAt = plateAt?.let { it + (want - it) * (1f - exp(-dt / 0.2f)) } ?: want
         show(PanelIds.PLATE, plateAt, LinePlace.yawFacing(plateAt!!, h.position), ps)
-        // turn panel: hangs under the line's left end (the line only tilts up, so it never swings into it)
-        val ctlH = CTL_LINE_H_DP * CTL_M_PER_DP
-        val c = start + viewRight * (CTL_W_DP / 2f * CTL_M_PER_DP) - Vec3.UP * (0.09f + ctlH / 2f)
-        show(PanelIds.CTL, c, LinePlace.yawFacing(c, h.position), cs)
+        placeCtl(h, 2, PanelPlace.lineBlobs(start, dir, len, plateAt), cs)
         // tick numbers under the major ticks (on the line's "down" side, so they follow a slant)
         val ts = textScale(TICK_CAP_M, TICK_SP)
         val off = if (ls.standing) viewRight * -0.05f else q.rotate(Vec3.UP) * -(TUBE_D / 2f + MAJOR_H + 0.016f)
@@ -627,6 +622,28 @@ class StageScene(private val graph: Graph) {
             show(PanelIds.tick(i), p, LinePlace.yawFacing(p, h.position), ts)
         }
     }
+
+    /**
+     * The turn panel (v0.3.1, QA #9 q9-2 / q9-3): not on the gauge but at a fixed readable spot in front of the user
+     * (PanelPlace: 0.9 m, below the line of sight, beside the window), on the first spot that the gauge, its value plate
+     * and the window leave clear seen from the head; it keeps that spot while it stays clear.
+     */
+    private fun placeCtl(h: HeadPose, rows: Int, blobs: List<PanelPlace.Blob>, scale: Float) {
+        val w = window() ?: run { show(PanelIds.CTL, null); return }
+        val pick = PanelPlace.choose(h.position, w, rows, blobs, ctlSpot)
+        if (pick.index != ctlSpot || pick.clear != ctlClear) {
+            ctlSpot = pick.index; ctlClear = pick.clear
+            val d = h.position.distanceTo(pick.center)
+            AppLog.i(String.format(Locale.US, "CTL spot=%s clear=%s at=%s dist=%.2f m textDeg=%.2f keyDeg=%.2f", pick.spot.id, pick.clear, fmt(pick.center), d,
+                PanelPlace.textDeg(d), PanelPlace.keyDeg(d)))
+        }
+        ctlAt = pick.center
+        show(PanelIds.CTL, pick.center, LinePlace.yawFacing(pick.center, h.position), scale)
+    }
+
+    private var ctlSpot: Int? = null
+    private var ctlClear = true
+    private var ctlAt: Vec3? = null
 
     private fun show(id: String, at: Vec3?, yaw: Float = 0f, scale: Float = 1f) {
         val h = holders[id] ?: return
@@ -676,14 +693,28 @@ class StageScene(private val graph: Graph) {
             Locale.US,
             "GAUGE kind=%s dims=%s vol=%.6f m3 angles(yaw,pitch,roll)=(%.1f, %.1f, %.1f) baseYaw=%.1f° up=%s front=%s " +
             "LINE on=%s result=%.6f m drawn=%.6f m start=%s end=%s measured=%.6f m yaw=%.1f° standing=%s moved=%s faded=%s " +
-                "head=%s window=%s mPerDp(stage)=%.6f mPerDp(window)=%.6f plate=%s plateScale=%.3f plateCapDeg=%s tickCapDeg=%s down=%s",
+                "head=%s window=%s mPerDp(stage)=%.6f mPerDp(window)=%.6f plate=%s plateScale=%.3f plateCapDeg=%s tickCapDeg=%s down=%s ctl=%s",
             ls.kind, boxDims, ls.volumeM3, ls.yaw, ls.pitch, ls.roll, Math.toDegrees(baseYaw.toDouble()), fmt(q.rotate(Vec3.UP)), fmt(q.rotate(Vec3(0f, 0f, 1f))),
             ls.on, ls.lengthM, spec?.drawnM ?: 0.0, fmt(start), fmt(end), if (start != null && end != null) start.distanceTo(end).toDouble() else 0.0,
             ls.yaw, ls.standing, userStart != null, faded, fmt(h?.position), fmt(w?.center), mPerDp, graph.window.mPerDp, fmt(plateAt),
             textScale(PLATE_CAP_M, PLATE_SP), d?.let { "%.2f".format(Locale.US, Ruler.angleDeg(PLATE_CAP_M.toDouble(), it.toDouble())) },
             d?.let { "%.2f".format(Locale.US, Ruler.angleDeg(TICK_CAP_M.toDouble(), it.toDouble())) },
             if (h != null && start != null) "%.1f".format(Locale.US, LinePlace.downDeg(h.position, start)) else null,
+            ctlDump(h),
         )
+    }
+
+    /** The turn panel for QA: spot, clear, distance, corner angles (screen projection), text / key angles. */
+    private fun ctlDump(h: HeadPose?): String {
+        val c = ctlAt; val w = window()
+        if (c == null || h == null || w == null || panelShown[PanelIds.CTL] != true) return "off"
+        val i = ctlSpot ?: return "off"
+        val rows = if (isBox) 3 else 2
+        val d = h.position.distanceTo(c)
+        val deg = PanelPlace.cornerDegrees(h.position, w.forward, PanelPlace.corners(c, h.position, PanelPlace.widthM(), PanelPlace.heightM(rows)))
+        val maxH = deg.maxOfOrNull { abs(it.first) } ?: 0f; val maxV = deg.maxOfOrNull { abs(it.second) } ?: 0f
+        return String.format(Locale.US, "{spot=%s clear=%s at=%s dist=%.3f maxCornerDeg(h,v)=(%.1f, %.1f) textDeg=%.2f keyDeg=%.2f}",
+            PanelPlace.spots[i].id, ctlClear, fmt(c), d, maxH, maxV, PanelPlace.textDeg(d), PanelPlace.keyDeg(d))
     }
 
     companion object {
@@ -698,11 +729,8 @@ class StageScene(private val graph: Graph) {
         const val PLATE_SP = 40f
         const val TICK_SP = 24f
         const val PLATE_HALF_H = 0.03f
-        /** The turn panel: 1 dp = 0.7 mm, so its 64 dp keys are 4.5 cm (≥ 4 cm and ≈ 2.6° at 1 m, D17). */
-        const val CTL_M_PER_DP = 0.0007f
-        const val CTL_W_DP = 320f
-        const val CTL_LINE_H_DP = 232f
-        const val CTL_BOX_H_DP = 304f
+        /** The turn panel's size and spot: PanelPlace (1 dp = 0.7 mm, 64 dp keys = 4.5 cm ≈ 2.85° at 0.9 m, D17). */
+        val CTL_W_DP = PanelPlace.W_DP
         const val EDGE_D = 0.004f
         fun fmt(v: Vec3?): String = if (v == null) "null" else String.format(Locale.US, "(%.4f, %.4f, %.4f)", v.x, v.y, v.z)
     }

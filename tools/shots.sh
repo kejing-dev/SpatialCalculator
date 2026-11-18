@@ -22,7 +22,7 @@ c type "5/0="; shot S04
 c type "c"; c unit cm; c type "120*3="; c unit m; shot S03-converted
 c type "c1.2="; c ruler on; sleep 1; shot S05-line
 c dump
-c ruler "turn 2"; c ruler "drag -0.05,0.1,0.15"; sleep 1; shot S05a-turned
+c ruler "turn 2"; c ruler "drag -0.05,0.1,0.15"; sleep 1; c dump; shot S05a-turned
 c ruler stand; sleep 1; shot S05a-standing
 c ruler off; c type "c23.5="; c ruler on; sleep 1.5; shot S05b-clipped
 c ruler off; c unit mm; c type "c0.4="; c ruler on; shot S05-too-short
@@ -38,7 +38,8 @@ c twist "y 40"; sleep 1; c dump; shot S10a-twist-snapped
 c turn reset; sleep 1; c dump; shot S10-reset
 c ruler "dragdeltas 60 0,0.002,0.001"; sleep 1; c dump; shot S10-dragged
 c ruler off; c unit cm; c type "c30*20*10="; c ruler on; sleep 1.5; shot S10-sides
-c ruler off; c unit m3; c type "c64="; c ruler on; sleep 1.5; shot S10b-clipped
+c ruler off; c unit m3; c type "c1="; c ruler on; sleep 1.5; c dump; shot S10-1m3
+c ruler off; c unit m3; c type "c64="; c ruler on; sleep 1.5; c dump; shot S10b-clipped
 c ruler off; c unit ml; c type "c0.0001="; c ruler on; shot S10-too-small
 c unit none; c type "c"
 c clearHistory; c goto history; shot S06-empty

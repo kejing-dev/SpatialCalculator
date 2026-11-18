@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.1 (2026-11-17)
+QA #9 on v0.3.0: the new turn panel.
+- The turn panel no longer hangs on the gauge: it stands 0.9 m ahead, 12° below the eye, left of the window (fixed in the
+  room), on the first spot that the line / box, its label and the window leave clear seen from the user; it only moves
+  when the gauge is dragged onto it. Text 0.64°, keys 2.85°, every corner within ±39° for any volume (1 mL … 64 m³).
+- 16 dp between the panel's rows (was 8 dp); round keys.
+- a × b × c in a length shows its volume in the window too ("6 L", not "6,000 cm").
+
 ## v0.3.0 (2026-11-16)
 User 2026-11-16 on v0.2.0: volumes too, and the generated line / volume should drag and turn (line two axes, volume three).
 - Volume unit row (mL L cm³ m³ ft³ gal) under the length row; results convert within a dimension. Window 400 × 716 dp.

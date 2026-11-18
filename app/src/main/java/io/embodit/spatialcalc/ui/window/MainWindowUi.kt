@@ -185,7 +185,10 @@ private fun ResultText(st: AppState) {
     }
     val suffix = if (st.unit.hasUnit) " " + st.unit.symbol else ""
     val single = calc.tokens.size == 1 && !calc.evaluated
+    // a × b × c with a length unit is a volume: show it like the box's label (「6 L」, not「6,000 cm」, v0.3.1)
+    val boxVolume = st.gaugeWant?.takeIf { calc.evaluated && it.sides.size == 3 && it.problem == null }?.volumeM3
     val (text, size) = when {
+        boxVolume != null -> Fmt.volumeAuto(boxVolume) to 52f
         calc.evaluated && calc.result != null -> fitResult(calc.result, suffix)
         single -> fitTyped(Fmt.typed(calc.tokens[0] as Tok.Num) + suffix)
         calc.tokens.isEmpty() -> "0$suffix" to 52f

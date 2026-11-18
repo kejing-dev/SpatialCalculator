@@ -53,6 +53,7 @@ import io.embodit.spatialcalc.domain.calc.Fmt
 import io.embodit.spatialcalc.domain.calc.Ruler
 import io.embodit.spatialcalc.domain.math.Vec3
 import io.embodit.spatialcalc.domain.place.Axis
+import io.embodit.spatialcalc.domain.place.PanelPlace
 import io.embodit.spatialcalc.platform.AppLog
 import io.embodit.spatialcalc.platform.Graph
 import io.embodit.spatialcalc.ui.Containers
@@ -181,21 +182,22 @@ private fun TurnPanel(g: io.embodit.spatialcalc.domain.app.LineState, graph: Gra
         Axis.X to stringResource(R.string.axis_x), Axis.Y to stringResource(R.string.axis_y), Axis.Z to stringResource(R.string.axis_z),
     ) else listOf(Axis.Y to stringResource(R.string.axis_turn), Axis.Z to stringResource(R.string.axis_tilt))
     Column(
-        Modifier.width(StageScene.CTL_W_DP.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF2F4F6F8)).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.width(PanelPlace.W_DP.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF2F4F6F8)).padding(PanelPlace.PAD_DP.dp),
+        // q9-1: 16 dp between the rows (B31: ≥ 64 dp keys, ≥ 16 dp apart in both directions)
+        verticalArrangement = Arrangement.spacedBy(PanelPlace.GAP_DP.dp),
     ) {
-        // 64 dp keys (B31) at 0.7 mm / dp = 4.5 cm in the room (D17 ≥ 4 cm)
+        // 64 dp keys (B31) at 0.7 mm / dp = 4.5 cm in the room (D17 ≥ 4 cm), ≈ 2.85° at 0.9 m
         rows.forEach { (axis, label) ->
-            Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(PanelPlace.KEY_DP.dp), verticalAlignment = Alignment.CenterVertically) {
                 PlateText(label, 20, "ctl-$axis", color = CalcColors.Ink, modifier = Modifier.weight(1f))
                 TurnKey("−15°", "ctl/$axis-minus") { app.gaugeTurn(axis, -1) }
-                Box(Modifier.width(16.dp))
+                Box(Modifier.width(PanelPlace.GAP_DP.dp))
                 TurnKey("+15°", "ctl/$axis-plus") { app.gaugeTurn(axis, 1) }
             }
         }
         Button(
             onClick = { AppLog.i("UI tap ctl/reset"); app.gaugeReset() }, modifier = Modifier.fillMaxWidth().height(64.dp),
-            size = ButtonDefaults.Regular.copy(height = 64.dp, minWidth = 96.dp),
+            size = ButtonDefaults.Regular.copy(height = 64.dp, minWidth = 96.dp), shape = RoundedCornerShape(32.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CalcColors.Accent, contentColor = CalcColors.OnAccent),
         ) {
             Icon(painter = painterResource(R.drawable.ic_restart_alt), contentDescription = null, tint = CalcColors.OnAccent, modifier = Modifier.size(24.dp))
@@ -210,7 +212,7 @@ private fun TurnPanel(g: io.embodit.spatialcalc.domain.app.LineState, graph: Gra
 private fun TurnKey(text: String, tag: String, onClick: () -> Unit) {
     Button(
         onClick = { AppLog.i("UI tap $tag"); onClick() }, modifier = Modifier.size(80.dp, 64.dp),
-        size = ButtonDefaults.Regular.copy(height = 64.dp, minWidth = 80.dp), contentPadding = PaddingValues(0.dp),
+        size = ButtonDefaults.Regular.copy(height = 64.dp, minWidth = 80.dp), contentPadding = PaddingValues(0.dp), shape = RoundedCornerShape(32.dp),
         colors = ButtonDefaults.buttonColors(containerColor = CalcColors.KeyFill, contentColor = CalcColors.Ink),
     ) {
         // design-style: inherited-content-color Button
