@@ -1,4 +1,4 @@
-# Spatial Calculator (空间计算器) · io.embodit.spatialcalc · v0.3.2
+# Spatial Calculator (空间计算器) · io.embodit.spatialcalc · v0.3.3
 
 A plain desktop-style calculator in a PICO OS 6 (SDK 6.1.9) system window. Its one spatial extra: a result with a
 length unit can be placed in the air next to the window as a 1:1 line with ticks, a volume as a 1:1 glass cube (or an
@@ -35,6 +35,14 @@ summed), grip + stick turn it 15° a notch or stand it up.
 a × b × c typed in a length unit becomes a volume in AppController (toVolume): unit = mL / L / m³ (handiest), result in
 it, origin = the as-computed cm³ / m³ / ft³ value; volume keys convert from origin, length keys are greyed
 (AppState.unitEnabled), — gives the plain product, a new number / C returns to the length unit.
+
+v0.3.3 (q11-1, user「Yes, grey them out」): once there is a result with a unit, the unit keys lock to its dimension
+(AppState.lockedDim / unitEnabled): a length result lights only mm cm m in ft, a volume result (12 L typed, or
+a × b × c) only mL L cm³ m³ ft³ gal; the other row is greyed (ink 62 %, ≈ 4.0:1), a tap only logs `UNIT … refused`, and a
+note line says which row applies. [—] stays lit. Switching within a row always converts from origin (no drift). While
+typing (no result) every key picks the unit as before. The grey preview of a × b × c in a length shows the volume
+(AppState.previewValue). Converted results show ≤ 7 significant digits; values under 1 keep plain decimals down to 4
+significant digits (0.0042378 ft³, not 4.238e-3). Tests: UnitLockTest.
 
 ## Debug broadcast
 

@@ -2,6 +2,7 @@ package io.embodit.spatialcalc.domain.app
 
 import io.embodit.spatialcalc.domain.calc.CalcState
 import io.embodit.spatialcalc.domain.calc.Calculator
+import io.embodit.spatialcalc.domain.calc.Dim
 import io.embodit.spatialcalc.domain.calc.Fmt
 import io.embodit.spatialcalc.domain.calc.Key
 import io.embodit.spatialcalc.domain.calc.LenUnit
@@ -105,11 +106,39 @@ data class AppState(
     /** The result on screen is a × b × c in a length unit, shown as the volume it is (6,000 cm³ → 6 L). */
     val sidesVolume: Boolean get() = sides != null && sidesUnit.isLength && unit.isVolume && calc.evaluated && calc.error == null
 
+    /** A finished result is on screen (not typing, no error). */
+    val hasResult: Boolean get() = calc.evaluated && calc.error == null && calc.result != null
+
     /**
-     * Whether a unit key can be tapped. On a volume made from three lengths a length key has no meaning (6 L is not a
-     * length): those keys are greyed and do nothing (q10-1). Everything else stays tappable.
+     * The dimension the unit keys are locked to: once there is a result with a unit, only that dimension's keys convert
+     * it (v0.3.3 q11-1, user 2026-11-17「Yes, grey them out」). Null = no lock (typing, no result, or a plain number).
      */
-    fun unitEnabled(u: LenUnit): Boolean = !(sidesVolume && u.isLength)
+    val lockedDim: Dim? get() = unit.dim.takeIf { hasResult && unit.hasUnit }
+
+    /**
+     * Whether a unit key can be tapped. With a result in a length only the length keys light up, with a result in a
+     * volume (12 L typed, or 30 × 20 × 10 cm = 6 L) only the volume keys: a length is not a volume, so switching across
+     * could only relabel the number (q11-1: 120 cm → [mL] → 120 mL). The other row is greyed and a tap does nothing.
+     * [—] (no unit) stays tappable. While typing (no result yet) every key picks the unit as before.
+     */
+    fun unitEnabled(u: LenUnit): Boolean = lockedDim.let { d -> d == null || u == LenUnit.NONE || u.dim == d }
+
+    /**
+     * The grey live line while typing: Calculator.preview in the unit row's unit. a × b × c typed in a length previews
+     * as the volume it will be (30 × 20 × 10 in cm →「6 L」, not「6,000 cm」), the same value = will give.
+     */
+    val previewValue: Pair<BigDecimal, LenUnit>? get() {
+        if (calc.evaluated || calc.error != null) return null
+        val v = Calculator.preview(calc) ?: return null
+        val sd = threeSides(calc.tokens)
+        val f = unit.exactFactor
+        if (sd != null && unit.isLength && f != null) {
+            val m3 = v.multiply(f.pow(3), Calculator.MC)
+            val show = Units.autoVolume(m3.abs().toDouble())
+            return Units.convert(m3, LenUnit.M3, show) to show
+        }
+        return v to unit
+    }
 
     /** What [摆出来] makes of the result on screen: a × b × c in a length → that box; a volume unit → a cube; a length → the line. */
     val gaugeWant: GaugeWant? get() {
@@ -137,6 +166,9 @@ data class AppState(
     /** The key shows a cube when it would make a volume. */
     val rulerBox: Boolean get() = gaugeWant?.kind == GaugeKind.BOX
 
+    /** The result on screen was converted from the unit it was computed in (the「= 360 cm」line is showing). */
+    val converted: Boolean get() = origin?.let { it.second != unit && unit.hasUnit } == true
+
     val convertedText: String? get() = origin?.takeIf { it.second != unit && unit.hasUnit }?.let { (v, u) -> "= " + Fmt.number(v) + " " + u.symbol }
 
     /** Stable id for QA (design states[]). */
@@ -156,6 +188,14 @@ data class AppState(
         calc.tokens.isNotEmpty() -> "S02"
         else -> "S01"
     }
+}
+
+/** a × b × c (three plain numbers multiplied): the sides of a box. */
+internal fun threeSides(t: List<Tok>): List<BigDecimal>? {
+    if (t.size != 5) return null
+    val nums = listOf(t[0], t[2], t[4]).map { (it as? Tok.Num)?.takeIf { n -> !n.pct && n.text != "-" && n.text != "." } ?: return null }
+    if ((t[1] as? Tok.Opr)?.op != Op.MUL || (t[3] as? Tok.Opr)?.op != Op.MUL) return null
+    return nums.map { it.value }
 }
 
 interface AppEffects {
@@ -247,14 +287,6 @@ class AppController(private val fx: AppEffects) {
         )
     }
 
-    /** a × b × c (three plain numbers multiplied): the sides of a box. */
-    private fun threeSides(t: List<Tok>): List<BigDecimal>? {
-        if (t.size != 5) return null
-        val nums = listOf(t[0], t[2], t[4]).map { (it as? Tok.Num)?.takeIf { n -> !n.pct && n.text != "-" } ?: return null }
-        if ((t[1] as? Tok.Opr)?.op != Op.MUL || (t[3] as? Tok.Opr)?.op != Op.MUL) return null
-        return nums.map { it.value }
-    }
-
     /**
      * The gauge follows the result while it is out (design follow): new size, a line becomes a box (or back) when the
      * unit says so, or it closes when it cannot draw. Typing a new number: it keeps the last result until =.
@@ -290,8 +322,8 @@ class AppController(private val fx: AppEffects) {
         val st = s
         if (u == st.unit) return
         if (!st.unitEnabled(u)) {
-            // q10-1: 6 L (from 30 × 20 × 10 cm) is not a length; the key is greyed, a stray tap changes nothing
-            fx.log("UNIT ${st.unit} -> $u refused (volume from sides in ${st.sidesUnit})")
+            // q10-1 / q11-1: a result in a length is not a volume (and back); the key is greyed, a stray tap changes nothing
+            fx.log("UNIT ${st.unit} -> $u refused (result is ${st.unit.dim}${if (st.sidesVolume) " from sides in ${st.sidesUnit}" else ""})")
             return
         }
         settings { it.copy(unit = u) }

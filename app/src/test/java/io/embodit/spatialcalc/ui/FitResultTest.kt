@@ -17,4 +17,14 @@ class FitResultTest {
             assertTrue("$v → $s", s.length <= 13 && size in listOf(40f, 52f))
         }
     }
+
+    /** v0.3.3: small volumes stay plain decimals (QA #11: 4.238e-3 ft³), converted results show ≤ 7 significant digits. */
+    @Test fun smallAndConverted() {
+        assertEquals("0.0042378 ft³" to 40f, fitResult(BigDecimal("0.00423776000328"), " ft³"))
+        assertEquals("0.0003531 ft³" to 40f, fitResult(BigDecimal("0.000353146667"), " ft³"))
+        assertEquals("0.211888 ft³" to 40f, fitResult(BigDecimal("0.211888000329"), " ft³", 7))
+        assertEquals("1.585032 gal" to 40f, fitResult(BigDecimal("1.58503231415"), " gal", 7))
+        assertEquals("47.24409 in" to 40f, fitResult(BigDecimal("47.2440944882"), " in", 7))
+        assertEquals("1e-9 m³" to 52f, fitResult(BigDecimal("1e-9"), " m³"))
+    }
 }

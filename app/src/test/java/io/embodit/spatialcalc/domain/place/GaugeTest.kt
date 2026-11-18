@@ -79,9 +79,10 @@ class GaugeTest {
         // a plain length is still the line
         a.ruler(); a.type("c12+3="); assertFalse(a.s.rulerBox)
         a.ruler(); assertFalse(a.s.line.isBox)
-        // switching the unit to a volume turns the line into a cube that follows
+        // v0.3.3 q11-1: on a length result the volume keys are greyed — [L] does nothing, the line stays the line
         a.unit(LenUnit.L)
-        assertTrue(a.s.line.on && a.s.line.isBox)
+        assertTrue(a.s.line.on && !a.s.line.isBox)
+        assertEquals(LenUnit.CM, a.s.unit)
     }
 
     @Test fun tooSmallAndNegativeVolumesAreRefused() {

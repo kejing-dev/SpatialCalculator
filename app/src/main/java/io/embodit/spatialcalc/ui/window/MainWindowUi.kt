@@ -29,6 +29,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -60,6 +66,7 @@ import io.embodit.spatialcalc.domain.calc.Calculator
 import io.embodit.spatialcalc.domain.calc.Fmt
 import io.embodit.spatialcalc.domain.calc.Key
 import io.embodit.spatialcalc.domain.calc.LenUnit
+import io.embodit.spatialcalc.domain.calc.Dim
 import io.embodit.spatialcalc.domain.calc.LineProblem
 import io.embodit.spatialcalc.domain.calc.Tok
 import io.embodit.spatialcalc.platform.AppLog
@@ -171,8 +178,9 @@ private fun ColumnScope.Display(st: AppState, app: AppController) {
             null -> null
         }
         if (note != null) Txt(note, "calc/line-note", size = sp(14f), color = CalcColors.ErrorText, align = TextAlign.End)
-        // why the length keys are greyed on a × b × c (D43: a greyed key says why)
-        else if (st.sidesVolume) Txt(stringResource(R.string.volume_note), "calc/volume-note", size = sp(14f), color = CalcColors.InkSecondary, align = TextAlign.End)
+        // why the other row is greyed once there is a result (q11-1; D43: a greyed key says why)
+        else if (st.lockedDim == Dim.VOLUME) Txt(stringResource(R.string.volume_note), "calc/volume-note", size = sp(14f), color = CalcColors.InkSecondary, align = TextAlign.End)
+        else if (st.lockedDim == Dim.LENGTH) Txt(stringResource(R.string.length_note), "calc/length-note", size = sp(14f), color = CalcColors.InkSecondary, align = TextAlign.End)
     }
 }
 
@@ -189,10 +197,11 @@ private fun ResultText(st: AppState) {
     val single = calc.tokens.size == 1 && !calc.evaluated
     // a × b × c with a length unit is a volume in the model itself (v0.3.2 q10-1): result + unit already read「6 L」
     val (text, size) = when {
-        calc.evaluated && calc.result != null -> fitResult(calc.result, suffix)
+        calc.evaluated && calc.result != null -> fitResult(calc.result, suffix, if (st.converted) CONVERTED_SIG else Fmt.MAX_SIG)
         single -> fitTyped(Fmt.typed(calc.tokens[0] as Tok.Num) + suffix)
         calc.tokens.isEmpty() -> "0$suffix" to 52f
-        else -> Calculator.preview(calc)?.let { fitResult(it, suffix) } ?: ("" to 52f)
+        // a × b × c in a length previews as the volume = will give (「6 L」, not「6,000 cm」)
+        else -> st.previewValue?.let { (v, u) -> fitResult(v, if (u.hasUnit) " " + u.symbol else "") } ?: ("" to 52f)
     }
     val preview = !calc.evaluated && !single && calc.tokens.isNotEmpty()
     Txt(
@@ -203,9 +212,17 @@ private fun ResultText(st: AppState) {
     )
 }
 
-/** 52 sp up to 10 characters, 40 sp up to 13, then fewer significant digits, then scientific (calcModel.display). */
-internal fun fitResult(v: BigDecimal, suffix: String): Pair<String, Float> {
-    for (sig in Fmt.MAX_SIG downTo 6) {
+/** A converted result (cm → in, L → gal, …) shows at most 7 significant digits in every unit (ft³ and gal alike). */
+internal const val CONVERTED_SIG = 7
+
+/**
+ * 52 sp up to 10 characters, 40 sp up to 13, then fewer significant digits (down to 6; down to 4 under 1, where the
+ * leading zeros take the room), then scientific (calcModel.display). So 0.004238 ft³ stays a plain decimal (QA #11
+ * known issue); only values under 1e-6, from 1e12 up, or too long are scientific.
+ */
+internal fun fitResult(v: BigDecimal, suffix: String, maxSig: Int = Fmt.MAX_SIG): Pair<String, Float> {
+    val minSig = if (v.abs() < BigDecimal.ONE) 4 else 6
+    for (sig in maxSig downTo minSig) {
         val s = Fmt.number(v, sig) + suffix
         if (s.length <= 10) return s to 52f
         if (s.length <= 13) return s to 40f
@@ -225,11 +242,28 @@ private fun UnitRow(row: List<LenUnit>, unit: LenUnit, enabled: (LenUnit) -> Boo
     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
         row.forEach { u ->
             val sel = u == unit
-            // q10-1: on「6 L」from 30 × 20 × 10 cm the length keys are greyed (a volume has no length unit)
+            val label = if (u == LenUnit.NONE) none else u.symbol
+            // q10-1 / q11-1: once there is a result only its own dimension's row is lit; the other row is greyed
             val on = enabled(u)
+            if (!on) {
+                // Not a disabled Button: SpatialUI dims a disabled Button to ~30 % on top of the text colour (measured
+                // 1.43:1 on the emulator, v0.3.3). A plain label in InkOff (≈ 4.0:1) that a11y reports as disabled; a tap
+                // only logs and goes to AppController.unit, which refuses it (nothing changes).
+                Box(
+                    Modifier.weight(1f).height(48.dp)
+                        .semantics { role = Role.Button; disabled() }
+                        .pointerInput(u) { detectTapGestures { AppLog.i("UI tap unit/${u.name} (greyed)"); onPick(u) } },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Txt(label, "calc/unit-${u.name}", size = sp(17f), color = CalcColors.InkOff)
+                        Spacer(Modifier.height(7.dp))
+                    }
+                }
+                return@forEach
+            }
             Button(
-                onClick = { AppLog.i("UI tap unit/${u.name}${if (on) "" else " (greyed)"}"); onPick(u) },
-                enabled = on,
+                onClick = { AppLog.i("UI tap unit/${u.name}"); onPick(u) },
                 modifier = Modifier.weight(1f).height(48.dp),
                 // gate:allow button-height unit row = one 48 dp text segment control (design panels.calc 单位行 48 dp; B19 ≥ 48 dp)
                 size = ButtonDefaults.Regular.copy(height = 48.dp, minWidth = 40.dp),
@@ -239,7 +273,7 @@ private fun UnitRow(row: List<LenUnit>, unit: LenUnit, enabled: (LenUnit) -> Boo
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // design-style: inherited-content-color Button
-                    Txt(if (u == LenUnit.NONE) none else u.symbol, "calc/unit-${u.name}", size = sp(17f), color = if (on) CalcColors.Ink else CalcColors.InkOff,
+                    Txt(label, "calc/unit-${u.name}", size = sp(17f), color = CalcColors.Ink,
                         style = PicoTheme.typography.bodyLarge.copy(fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal))
                     Spacer(Modifier.height(3.dp))
                     Box(Modifier.size(4.dp).clip(CircleShape).background(if (sel) CalcColors.Accent else androidx.compose.ui.graphics.Color.Transparent))

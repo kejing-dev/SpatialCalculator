@@ -5,6 +5,7 @@
     <string name="div_zero">不能除以 0</string>
     <string name="too_big">太大了</string>
     <string name="volume_note">这是体积，可换 mL、L、m³ 等单位</string>
+    <string name="length_note">这是长度，可换 mm、cm、m 等单位</string>
     <string name="line_too_short">太小，摆不出来</string>
     <string name="line_negative">负数没有长度</string>
     <string name="line_clipped">全长 %1$s · 只画了 10 m</string>
