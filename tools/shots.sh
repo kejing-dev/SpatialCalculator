@@ -38,8 +38,12 @@ c twist "y 40"; sleep 1; c dump; shot S10a-twist-snapped
 c turn reset; sleep 1; c dump; shot S10-reset
 c ruler "dragdeltas 60 0,0.002,0.001"; sleep 1; c dump; shot S10-dragged
 c ruler off; c unit cm; c type "c30*20*10="; c ruler on; sleep 1.5; shot S10-sides
+# v0.3.2 q10-1: the same box after [m³] (label second line follows the window unit)
+c unit m3; sleep 1; shot S10-sides-m3
 c ruler off; c unit m3; c type "c1="; c ruler on; sleep 1.5; c dump; shot S10-1m3
 c ruler off; c unit m3; c type "c64="; c ruler on; sleep 1.5; c dump; shot S10b-clipped
+# v0.3.2 q10-2: QA #10 turned the 64 m³ box Y +15°, Z −15° and the label left the view
+c turn "y 1"; c turn "z -1"; sleep 1.5; c dump; shot S10b-turned
 c ruler off; c unit ml; c type "c0.0001="; c ruler on; shot S10-too-small
 c unit none; c type "c"
 c clearHistory; c goto history; shot S06-empty

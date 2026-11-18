@@ -12,8 +12,8 @@ android {
         applicationId = "io.embodit.spatialcalc"
         minSdk = 35
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.3.1"
+        versionCode = 11
+        versionName = "0.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters.add("arm64-v8a") }

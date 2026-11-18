@@ -54,6 +54,7 @@ import io.embodit.spatialcalc.domain.calc.Ruler
 import io.embodit.spatialcalc.domain.math.Vec3
 import io.embodit.spatialcalc.domain.place.Axis
 import io.embodit.spatialcalc.domain.place.PanelPlace
+import io.embodit.spatialcalc.domain.place.PlatePlace
 import io.embodit.spatialcalc.platform.AppLog
 import io.embodit.spatialcalc.platform.Graph
 import io.embodit.spatialcalc.ui.Containers
@@ -160,14 +161,15 @@ private fun ValuePlate(lengthM: Double, unit: io.embodit.spatialcalc.domain.calc
 /** The volume's label over the box: "1.5 L" (from a volume) or "30 × 20 × 10 cm" + "= 6 L" (from three sides). */
 @Composable
 private fun BoxPlate(g: io.embodit.spatialcalc.domain.app.LineState) {
-    val main = if (g.fromSides) Fmt.sides(g.sides, g.unit) else Fmt.volume(g.volumeM3, g.unit)
+    // q10-1: the sides keep their own length unit; the volume line reads the window's unit (one value, D38)
+    val main = if (g.fromSides) Fmt.sides(g.sides, g.sidesUnit) else Fmt.volume(g.volumeM3, g.unit)
     Column(
         Modifier.clip(RoundedCornerShape(40.dp)).background(CalcColors.PlateInk).padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        PlateText(main, StageScene.PLATE_SP.toInt(), "box-value")
-        if (g.fromSides) PlateText("= " + Fmt.volumeAuto(g.volumeM3), 24, "box-volume", color = Color(0xFFE6EBEF), weight = FontWeight.Normal)
-        if (g.clipped) PlateText(stringResource(R.string.box_clipped), 20, "box-clipped", color = Color(0xFFE6EBEF), weight = FontWeight.Normal)
+        PlateText(main, PlatePlace.MAIN_SP.toInt(), "box-value")
+        if (g.fromSides) PlateText("= " + Fmt.volume(g.volumeM3, g.unit), PlatePlace.SMALL_SP.toInt(), "box-volume", color = Color(0xFFE6EBEF), weight = FontWeight.Normal)
+        if (g.clipped) PlateText(stringResource(R.string.box_clipped), PlatePlace.SMALL_SP.toInt(), "box-clipped", color = Color(0xFFE6EBEF), weight = FontWeight.Normal)
     }
 }
 

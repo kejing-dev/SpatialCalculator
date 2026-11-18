@@ -40,6 +40,9 @@ object Units {
         return v.multiply(f, Calculator.MC).divide(t, Calculator.MC)
     }
 
+    /** The handiest metric volume unit for [m3]: < 1 L → mL, < 1 m³ → L, else m³ (window and box label alike). */
+    fun autoVolume(m3: Double): LenUnit = when { m3 < 0.001 -> LenUnit.ML; m3 < 1.0 -> LenUnit.L; else -> LenUnit.M3 }
+
     fun meters(v: BigDecimal, unit: LenUnit): Double? = unit.takeIf { it.isLength }?.exactFactor?.let { v.multiply(it, Calculator.MC).toDouble() }
 
     fun cubicMeters(v: BigDecimal, unit: LenUnit): Double? = unit.takeIf { it.isVolume }?.exactFactor?.let { v.multiply(it, Calculator.MC).toDouble() }

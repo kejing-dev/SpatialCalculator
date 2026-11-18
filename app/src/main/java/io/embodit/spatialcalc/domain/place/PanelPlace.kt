@@ -131,12 +131,12 @@ object PanelPlace {
     }
 
     /** The box's 8 corners and its value plate. */
-    fun boxBlobs(c: Vec3, q: Quat4, dims: List<Double>, plate: Vec3?): List<Blob> {
+    fun boxBlobs(c: Vec3, q: Quat4, dims: List<Double>, plate: Vec3?, platePad: Float = PLATE_PAD_M): List<Blob> {
         val hx = dims[0].toFloat() / 2f; val hy = dims[1].toFloat() / 2f; val hz = dims[2].toFloat() / 2f
         val pts = ArrayList<Vec3>()
         for (sx in listOf(-1f, 1f)) for (sy in listOf(-1f, 1f)) for (sz in listOf(-1f, 1f)) pts += c + q.rotate(Vec3(sx * hx, sy * hy, sz * hz))
         val out = mutableListOf(Blob(pts, 0.01f))
-        if (plate != null) out += Blob(listOf(plate), PLATE_PAD_M)
+        if (plate != null) out += Blob(listOf(plate), platePad)
         return out
     }
 

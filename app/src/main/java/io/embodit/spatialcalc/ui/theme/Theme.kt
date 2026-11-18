@@ -29,6 +29,8 @@ object CalcColors {
     val InkSecondary = Color(0xFF3A3F45)
     /** Expression line: the secondary ink (design said ink 60 %: 3.9:1 on the light glass, under 4.5:1). */
     val InkDim = Color(0xFF3A3F45)
+    /** A greyed unit key: ink 55 % = 3.33:1 on the glass #D7D6D4 (inactive control; still ≥ 3:1 so it reads as dimmed, not gone). */
+    val InkOff = Color(0x8C1B1F24)
     val KeyFill = Color(0x141B1F24)
     val OpFill = Color(0x241B1F24)
     /** Error text on the light glass (the design's #FF8A80 is for a dark glass: 1.9:1 here). */

@@ -122,9 +122,9 @@ private fun CalcPage(st: AppState, settings: Settings, app: AppController) {
         }
         Display(st, app)
         Spacer(Modifier.height(4.dp))
-        UnitRow(LenUnit.ROW, st.unit) { app.unit(it) }
+        UnitRow(LenUnit.ROW, st.unit, st::unitEnabled) { app.unit(it) }
         Spacer(Modifier.height(4.dp))
-        UnitRow(LenUnit.VOL_ROW, st.unit) { app.unit(it) }
+        UnitRow(LenUnit.VOL_ROW, st.unit, st::unitEnabled) { app.unit(it) }
         Spacer(Modifier.height(16.dp))
         Keypad { app.press(it) }
     }
@@ -171,6 +171,8 @@ private fun ColumnScope.Display(st: AppState, app: AppController) {
             null -> null
         }
         if (note != null) Txt(note, "calc/line-note", size = sp(14f), color = CalcColors.ErrorText, align = TextAlign.End)
+        // why the length keys are greyed on a × b × c (D43: a greyed key says why)
+        else if (st.sidesVolume) Txt(stringResource(R.string.volume_note), "calc/volume-note", size = sp(14f), color = CalcColors.InkSecondary, align = TextAlign.End)
     }
 }
 
@@ -185,10 +187,8 @@ private fun ResultText(st: AppState) {
     }
     val suffix = if (st.unit.hasUnit) " " + st.unit.symbol else ""
     val single = calc.tokens.size == 1 && !calc.evaluated
-    // a × b × c with a length unit is a volume: show it like the box's label (「6 L」, not「6,000 cm」, v0.3.1)
-    val boxVolume = st.gaugeWant?.takeIf { calc.evaluated && it.sides.size == 3 && it.problem == null }?.volumeM3
+    // a × b × c with a length unit is a volume in the model itself (v0.3.2 q10-1): result + unit already read「6 L」
     val (text, size) = when {
-        boxVolume != null -> Fmt.volumeAuto(boxVolume) to 52f
         calc.evaluated && calc.result != null -> fitResult(calc.result, suffix)
         single -> fitTyped(Fmt.typed(calc.tokens[0] as Tok.Num) + suffix)
         calc.tokens.isEmpty() -> "0$suffix" to 52f
@@ -220,13 +220,16 @@ private fun fitTyped(s: String): Pair<String, Float> = s to when { s.length <= 1
  * mist-teal dot under it (no frame). One unit at a time across both rows.
  */
 @Composable
-private fun UnitRow(row: List<LenUnit>, unit: LenUnit, onPick: (LenUnit) -> Unit) {
+private fun UnitRow(row: List<LenUnit>, unit: LenUnit, enabled: (LenUnit) -> Boolean, onPick: (LenUnit) -> Unit) {
     val none = stringResource(R.string.unit_none)
     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
         row.forEach { u ->
             val sel = u == unit
+            // q10-1: on「6 L」from 30 × 20 × 10 cm the length keys are greyed (a volume has no length unit)
+            val on = enabled(u)
             Button(
-                onClick = { AppLog.i("UI tap unit/${u.name}"); onPick(u) },
+                onClick = { AppLog.i("UI tap unit/${u.name}${if (on) "" else " (greyed)"}"); onPick(u) },
+                enabled = on,
                 modifier = Modifier.weight(1f).height(48.dp),
                 // gate:allow button-height unit row = one 48 dp text segment control (design panels.calc 单位行 48 dp; B19 ≥ 48 dp)
                 size = ButtonDefaults.Regular.copy(height = 48.dp, minWidth = 40.dp),
@@ -236,7 +239,7 @@ private fun UnitRow(row: List<LenUnit>, unit: LenUnit, onPick: (LenUnit) -> Unit
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // design-style: inherited-content-color Button
-                    Txt(if (u == LenUnit.NONE) none else u.symbol, "calc/unit-${u.name}", size = sp(17f), color = CalcColors.Ink,
+                    Txt(if (u == LenUnit.NONE) none else u.symbol, "calc/unit-${u.name}", size = sp(17f), color = if (on) CalcColors.Ink else CalcColors.InkOff,
                         style = PicoTheme.typography.bodyLarge.copy(fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal))
                     Spacer(Modifier.height(3.dp))
                     Box(Modifier.size(4.dp).clip(CircleShape).background(if (sel) CalcColors.Accent else androidx.compose.ui.graphics.Color.Transparent))

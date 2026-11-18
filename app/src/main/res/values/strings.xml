@@ -4,6 +4,7 @@
     <string name="first_hint">Pick a unit to see lengths and volumes</string>
     <string name="div_zero">Can\'t divide by 0</string>
     <string name="too_big">Too big</string>
+    <string name="volume_note">A volume: pick mL, L, m³ or more</string>
     <string name="line_too_short">Too small to place</string>
     <string name="line_negative">Negative isn\'t a length</string>
     <string name="line_clipped">%1$s total · drawing 10 m</string>

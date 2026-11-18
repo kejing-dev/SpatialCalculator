@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.2 (2026-11-17)
+QA #10 on v0.3.1.
+- q10-1: a × b × c typed in a length unit is a volume in the data itself (length³), not only on screen. 30 × 20 × 10 cm
+  = 6 L with「= 6,000 cm³」above; the volume keys convert from that one value (L 6 · mL 6,000 · cm³ 6,000 · m³ 0.006 ·
+  ft³ 0.211888000329 · gal 1.58503231415), back and forth without drift; the length keys are greyed on it with a short
+  note「这是体积，可换 mL、L、m³ 等单位」. History keeps「30 × 20 × 10 cm = 6 L」; × 2 = 12 L; a new number is in cm again;
+  — gives the plain product 6,000. The box label reads its sides in cm and its volume in the window's unit.
+- q10-2: the box label (PlatePlace) stays inside the default view (all 8 corners within ±39°, aimed at ±37°) for any
+  size and turn: it slides back along the view and stops in front of the box's near face; it grows with distance so its
+  smallest line (28 sp, was 20 / 24 sp) is ≥ 0.6° (64 m³: was 0.27°). Debug `dump` prints `boxPlate={…}`.
+
 ## v0.3.1 (2026-11-17)
 QA #9 on v0.3.0: the new turn panel.
 - The turn panel no longer hangs on the gauge: it stands 0.9 m ahead, 12° below the eye, left of the window (fixed in the

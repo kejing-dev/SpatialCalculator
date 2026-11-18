@@ -32,10 +32,12 @@ import io.embodit.spatialcalc.domain.calc.LineSpec
 import io.embodit.spatialcalc.domain.calc.Ruler
 import io.embodit.spatialcalc.domain.math.Quat4
 import io.embodit.spatialcalc.domain.math.Vec3
+import io.embodit.spatialcalc.domain.calc.Fmt
 import io.embodit.spatialcalc.domain.place.Axis
 import io.embodit.spatialcalc.domain.place.GaugeMath
 import io.embodit.spatialcalc.domain.place.LinePlace
 import io.embodit.spatialcalc.domain.place.PanelPlace
+import io.embodit.spatialcalc.domain.place.PlatePlace
 import io.embodit.spatialcalc.domain.place.WindowPose
 import io.embodit.spatialcalc.platform.AppLog
 import io.embodit.spatialcalc.platform.Graph
@@ -478,7 +480,7 @@ class StageScene(private val graph: Graph) {
         serial = ls.serial
         isBox = true
         resetSeen = ls.resetSerial
-        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null; ctlSpot = null; ctlAt = null
+        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null; plateScale = null; plateBox = null; ctlSpot = null; ctlAt = null
         boxDims = GaugeMath.drawnDims(ls.dimsM)
         shownLen = 0f; lenFrom = 0f; lenTo = 1f; lenStart = now; lenDur = 400L
         val holder = Entity().apply { setName("box:holder") }
@@ -506,7 +508,7 @@ class StageScene(private val graph: Graph) {
         serial = ser
         isBox = false
         resetSeen = app.s.line.resetSerial
-        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null; ctlSpot = null; ctlAt = null
+        userStart = null; current = null; defaultStart = null; opensSeen = -1; specKey = ""; colliderLen = -1f; faded = false; plateAt = null; plateScale = null; plateBox = null; ctlSpot = null; ctlAt = null
         shownLen = 0f; lenFrom = 0f; lenTo = 0f; lenStart = now
         val holder = Entity().apply { setName("line:holder") }
         root.addChild(holder)
@@ -596,10 +598,16 @@ class StageScene(private val graph: Graph) {
             // label over the top of the box, facing the user (yaw only); the turn panel under it
             val grow = max(shownLen, 0.001f)
             val dims = boxDims.map { it * grow }
-            val want = start + Vec3.UP * (GaugeMath.worldHalfHeight(q, dims) + 0.03f + PLATE_HALF_H)
-            plateAt = plateAt?.let { it + (want - it) * (1f - exp(-dt / 0.2f)) } ?: want
-            show(PanelIds.PLATE, plateAt, LinePlace.yawFacing(plateAt!!, h.position), ps)
-            placeCtl(h, 3, PanelPlace.boxBlobs(start, q, dims, plateAt), cs)
+            // q10-2: over the top when that is in view; else slid into the default view (±39°), never into the glass;
+            // drawn so its smallest line is ≥ 0.6° wherever it is (PlatePlace)
+            val (wDp, hDp) = PlatePlace.sizeDp(boxPlateLines(ls))
+            val viewF = window()?.forward ?: h.forward
+            val pl = PlatePlace.place(h.position, viewF, start, q, dims, wDp, hDp, PlatePlace.SMALL_SP)
+            plateAt = plateAt?.let { it + (pl.center - it) * (1f - exp(-dt / 0.2f)) } ?: pl.center
+            plateScale = plateScale?.let { it + (pl.mPerDp - it) * (1f - exp(-dt / 0.2f)) } ?: pl.mPerDp
+            plateBox = pl
+            show(PanelIds.PLATE, plateAt, LinePlace.yawFacing(plateAt!!, h.position), plateScale!! / mPerDp)
+            placeCtl(h, 3, PanelPlace.boxBlobs(start, q, dims, plateAt, pl.padM), cs)
             for (i in 0 until PanelIds.TICK_SLOTS) show(PanelIds.tick(i), null)
             return
         }
@@ -639,6 +647,19 @@ class StageScene(private val graph: Graph) {
         }
         ctlAt = pick.center
         show(PanelIds.CTL, pick.center, LinePlace.yawFacing(pick.center, h.position), scale)
+    }
+
+    /** Box plate: smoothed metres per dp and the last placement (for the dump). */
+    private var plateScale: Float? = null
+    private var plateBox: PlatePlace.Placed? = null
+
+    /** The box plate's lines as BoxPlate draws them (both languages: the wider one) for its size estimate. */
+    private fun boxPlateLines(g: io.embodit.spatialcalc.domain.app.LineState): List<PlatePlace.Line> {
+        val out = ArrayList<PlatePlace.Line>()
+        out += PlatePlace.Line(if (g.fromSides) Fmt.sides(g.sides, g.sidesUnit) else Fmt.volume(g.volumeM3, g.unit), PlatePlace.MAIN_SP)
+        if (g.fromSides) out += PlatePlace.Line("= " + Fmt.volume(g.volumeM3, g.unit), PlatePlace.SMALL_SP)
+        if (g.clipped) out += PlatePlace.Line("Drawn as a 3 m box", PlatePlace.SMALL_SP)
+        return out
     }
 
     private var ctlSpot: Int? = null
@@ -693,15 +714,28 @@ class StageScene(private val graph: Graph) {
             Locale.US,
             "GAUGE kind=%s dims=%s vol=%.6f m3 angles(yaw,pitch,roll)=(%.1f, %.1f, %.1f) baseYaw=%.1f° up=%s front=%s " +
             "LINE on=%s result=%.6f m drawn=%.6f m start=%s end=%s measured=%.6f m yaw=%.1f° standing=%s moved=%s faded=%s " +
-                "head=%s window=%s mPerDp(stage)=%.6f mPerDp(window)=%.6f plate=%s plateScale=%.3f plateCapDeg=%s tickCapDeg=%s down=%s ctl=%s",
+                "head=%s window=%s mPerDp(stage)=%.6f mPerDp(window)=%.6f plate=%s plateScale=%.3f plateCapDeg=%s tickCapDeg=%s down=%s ctl=%s boxPlate=%s",
             ls.kind, boxDims, ls.volumeM3, ls.yaw, ls.pitch, ls.roll, Math.toDegrees(baseYaw.toDouble()), fmt(q.rotate(Vec3.UP)), fmt(q.rotate(Vec3(0f, 0f, 1f))),
             ls.on, ls.lengthM, spec?.drawnM ?: 0.0, fmt(start), fmt(end), if (start != null && end != null) start.distanceTo(end).toDouble() else 0.0,
             ls.yaw, ls.standing, userStart != null, faded, fmt(h?.position), fmt(w?.center), mPerDp, graph.window.mPerDp, fmt(plateAt),
             textScale(PLATE_CAP_M, PLATE_SP), d?.let { "%.2f".format(Locale.US, Ruler.angleDeg(PLATE_CAP_M.toDouble(), it.toDouble())) },
             d?.let { "%.2f".format(Locale.US, Ruler.angleDeg(TICK_CAP_M.toDouble(), it.toDouble())) },
             if (h != null && start != null) "%.1f".format(Locale.US, LinePlace.downDeg(h.position, start)) else null,
-            ctlDump(h),
+            ctlDump(h), boxPlateDump(h),
         )
+    }
+
+    /** The box plate for QA (q10-2): centre, distance, clamped, max corner angles (screen projection), line heights in degrees. */
+    private fun boxPlateDump(h: HeadPose?): String {
+        val pl = plateBox; val at = plateAt
+        if (pl == null || at == null || h == null || !isBox || panelShown[PanelIds.PLATE] != true) return "off"
+        val viewF = window()?.forward ?: h.forward
+        val shown = pl.copy(center = at)
+        val deg = PlatePlace.cornerDegrees(h.position, viewF, shown)
+        val d = h.position.distanceTo(at)
+        return String.format(Locale.US, "{at=%s dist=%.2f clamped=%s maxCornerDeg(h,v)=(%.1f, %.1f) mainDeg=%.2f smallDeg=%.2f size=%.2fx%.2f m}",
+            fmt(at), d, pl.clamped, deg.maxOfOrNull { abs(it.first) } ?: 0f, deg.maxOfOrNull { abs(it.second) } ?: 0f,
+            PlatePlace.textDeg(PlatePlace.MAIN_SP, pl.mPerDp, d), PlatePlace.textDeg(PlatePlace.SMALL_SP, pl.mPerDp, d), pl.wM, pl.hM)
     }
 
     /** The turn panel for QA: spot, clear, distance, corner angles (screen projection), text / key angles. */
